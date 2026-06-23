@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}IP Threatscope{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+<!-- Sidebar overlay (mobile) -->
+<div class="ts-sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- ── Sidebar ────────────────────────────────────────────────────── -->
+<aside class="ts-sidebar" id="sidebar">
+
+  <!-- Brand -->
+  <a class="sidebar-brand" href="{{ url_for('dashboard') }}">
+    <div class="brand-icon"><i class="bi bi-shield-check"></i></div>
+    <div>
+      <div class="brand-text">IP Threatscope</div>
+      <div class="brand-sub">Threat Intelligence</div>
+    </div>
+  </a>
+
+  <!-- User -->
+  <div class="sidebar-user">
+    <div class="sidebar-avatar">{{ session.user_email[0].upper() if session.user_email else '?' }}</div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-email">{{ session.user_email }}</div>
+      <div class="sidebar-user-badge">Active Session</div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Analysis</div>
+
+    <a href="{{ url_for('dashboard') }}"
+       class="nav-item {% if active_page=='dashboard' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+
+    <a href="{{ url_for('run_batch') }}"
+       class="nav-item {% if active_page=='batch' %}active{% endif %}">
+      <i class="bi bi-list-check"></i> Scan IP List
+      {% set ip_count = user.ips | length if user and user.ips else 0 %}
+      {% if ip_count > 0 %}
+      <span class="nav-badge">{{ ip_count }}</span>
+      {% endif %}
+    </a>
+
+    <div class="nav-section-label">Account</div>
+
+    <a href="{{ url_for('settings') }}"
+       class="nav-item {% if active_page=='settings' %}active{% endif %}">
+      <i class="bi bi-gear"></i> Settings
+    </a>
+
+    <a href="{{ url_for('change_pwd') }}"
+       class="nav-item {% if active_page=='change_pwd' %}active{% endif %}">
+      <i class="bi bi-key"></i> Change Password
+    </a>
+
+    <div class="sidebar-divider"></div>
+
+    <a href="{{ url_for('logout') }}" class="nav-item nav-danger">
+      <i class="bi bi-box-arrow-right"></i> Sign Out
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    &copy; {{ 2025 }} IP Threatscope
+  </div>
+</aside>
+
+<!-- ── Main area ──────────────────────────────────────────────────── -->
+<div class="ts-main">
+
+  <!-- Mobile top bar -->
+  <div class="ts-mobile-bar">
+    <button class="btn-sidebar-toggle" onclick="openSidebar()" aria-label="Menu">
+      <i class="bi bi-list"></i>
+    </button>
+    <span class="mobile-brand">IP Threatscope</span>
+    <a href="{{ url_for('dashboard') }}" class="btn-sidebar-toggle" style="text-decoration:none;">
+      <i class="bi bi-speedometer2"></i>
+    </a>
+  </div>
+
+  <!-- Desktop topbar -->
+  <div class="ts-topbar">
+    <span class="topbar-title">{% block page_heading %}{% endblock %}</span>
+    <div class="topbar-actions">
+      {% block topbar_actions %}{% endblock %}
+    </div>
+  </div>
+
+  <!-- Flash messages -->
+  <div class="ts-content pb-0 pt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible mb-3" role="alert">
+          <i class="bi {% if category=='success' %}bi-check-circle{% elif category=='danger' %}bi-exclamation-circle{% elif category=='warning' %}bi-exclamation-triangle{% else %}bi-info-circle{% endif %}"></i>
+          <span>{{ message }}</span>
+          <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Page content -->
+  <div class="ts-content">
+    {% block content %}{% endblock %}
+  </div>
+
+</div><!-- /ts-main -->
+
+<!-- Loading overlay -->
+<div id="loadingOverlay" class="d-none">
+  <div class="spinner-border"></div>
+  <p class="loading-text">Querying threat intelligence sources…</p>
+  <p class="loading-sub">This may take a few seconds</p>
+</div>
+
+<!-- Bootstrap JS + BI -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Sidebar toggle -->
+<script>
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
+// Close on Escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
+
+// Copy to clipboard helper
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+    setTimeout(() => { btn.innerHTML = orig; }, 1500);
+  });
+}
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

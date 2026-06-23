@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard – IP Threatscope{% endblock %}
+{% block page_heading %}Dashboard{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('settings') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-gear"></i> Settings
+  </a>
+{% endblock %}
+
+{% block content %}
+{% set ip_count = user.ips | length if user and user.ips else 0 %}
+{% set sched = scheduler_status %}
+
+<!-- ── Quick-scan hero ──────────────────────────────────────────── -->
+<div class="card mb-4" style="background:linear-gradient(135deg,#1e3a5f 0%,#0f172a 100%);border:none;color:#fff;">
+  <div class="card-body" style="padding:28px 32px;">
+    <div class="row align-items-center g-3">
+      <div class="col-lg-8">
+        <h1 style="font-size:1.35rem;font-weight:800;color:#fff;margin-bottom:4px;">
+          <i class="bi bi-shield-check me-2" style="color:#3b82f6;"></i>
+          Scan an IP Address
+        </h1>
+        <p style="color:#94a3b8;font-size:.85rem;margin-bottom:18px;">
+          Query AbuseIPDB, VirusTotal, GreyNoise, Shodan and more in one click.
+        </p>
+        <form method="POST" id="singleIPForm">
+          <div class="input-group-scan">
+            <input type="text" name="ip" class="form-control"
+                   placeholder="e.g. 203.0.113.42"
+                   style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);color:#fff;"
+                   required autofocus>
+            <button type="submit" class="btn btn-primary" id="analyzeBtn" style="min-width:120px;">
+              <span id="btnText"><i class="bi bi-search"></i> Analyze</span>
+              <span id="btnSpinner" class="d-none">
+                <span class="spinner-border spinner-border-sm"></span> Scanning…
+              </span>
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="col-lg-4 text-lg-end text-center d-none d-lg-block">
+        <i class="bi bi-shield-shaded" style="font-size:5rem;color:rgba(59,130,246,0.35);"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Stat cards ───────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="bi bi-globe2"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ ip_count }}</div>
+        <div class="stat-label">IPs in My List</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-clock-history"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" style="font-size:1.1rem;margin-top:4px;">{{ sched.last_success_at }}</div>
+        <div class="stat-label">Last Scan</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon amber"><i class="bi bi-alarm"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" style="font-size:1.1rem;margin-top:4px;">{{ sched.next_check_eta }}</div>
+        <div class="stat-label">Next Scheduled Check</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon purple"><i class="bi bi-hourglass-split"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ sched.interval_minutes }}<span style="font-size:1rem;font-weight:500;">min</span></div>
+        <div class="stat-label">Check Interval</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Batch + history row ──────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+
+  <!-- Batch run card -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header" style="color:var(--text-primary);">
+        <i class="bi bi-list-task" style="color:var(--accent);"></i>
+        Batch Scan — My IP List
+      </div>
+      <div class="card-body">
+        {% if ip_count > 0 %}
+        <p style="color:var(--text-secondary);font-size:.875rem;margin-bottom:16px;">
+          You have <strong>{{ ip_count }}</strong> IP{{ 's' if ip_count != 1 else '' }} saved.
+          Each will be checked against all vendors in sequence.
+        </p>
+        <div style="background:var(--body-bg);border-radius:10px;padding:12px;margin-bottom:16px;max-height:140px;overflow-y:auto;">
+          {% for ip in user.ips %}
+          <span class="monospace" style="font-size:.8rem;background:#fff;border:1px solid var(--border);border-radius:6px;padding:3px 10px;display:inline-block;margin:2px;">{{ ip }}</span>
+          {% endfor %}
+        </div>
+        <a href="{{ url_for('run_batch') }}" id="runBatchBtn" class="btn btn-success w-100">
+          <i class="bi bi-play-fill"></i> Scan All IPs Now
+        </a>
+        {% else %}
+        <div class="empty-state">
+          <i class="bi bi-collection"></i>
+          <h6>No IPs in your list</h6>
+          <p style="font-size:.82rem;">Add IPs in Settings to enable batch scanning and scheduled reports.</p>
+          <a href="{{ url_for('settings') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus"></i> Add IPs
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent scans -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header" style="color:var(--text-primary);">
+        <i class="bi bi-clock" style="color:var(--accent);"></i>
+        Recent Scans
+        {% if scan_history %}
+        <span class="badge badge-secondary ms-auto">{{ scan_history|length }}</span>
+        {% endif %}
+      </div>
+      {% if scan_history %}
+      <div style="overflow:hidden;">
+        {% for item in scan_history %}
+        <div class="scan-history-item">
+          <div {% if item.verdict == 'Suspicious' %}style="width:10px;height:10px;border-radius:50%;background:var(--danger);flex-shrink:0;"{% else %}style="width:10px;height:10px;border-radius:50%;background:var(--success);flex-shrink:0;"{% endif %}></div>
+          <span class="scan-ip">{{ item.ip }}</span>
+          {% if item.verdict == 'Suspicious' %}
+          <span class="threat-badge threat-high" style="font-size:.7rem;padding:2px 8px;">
+            {{ item.blocked }} blocked
+          </span>
+          {% else %}
+          <span class="threat-badge threat-clean" style="font-size:.7rem;padding:2px 8px;">Clean</span>
+          {% endif %}
+          <span class="scan-time">{{ item.analyzed_at }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card-body">
+        <div class="empty-state" style="padding:20px 0;">
+          <i class="bi bi-search" style="font-size:1.8rem;"></i>
+          <p style="font-size:.82rem;margin-top:8px;">No scans in this session yet.</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Scheduler status card ─────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header" style="color:var(--text-primary);">
+    <i class="bi bi-send" style="color:var(--accent);"></i>
+    Automated Email Reports
+    <span class="ms-auto">
+      {% if user and user.settings and user.settings.mail_sender %}
+      <span class="scheduler-pill"><span class="scheduler-dot"></span> Configured</span>
+      {% else %}
+      <span class="scheduler-pill inactive"><span class="scheduler-dot"></span> Not configured</span>
+      {% endif %}
+    </span>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-sm-6 col-lg-3">
+        <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:4px;">Sender</div>
+        <div style="font-size:.875rem;font-weight:500;">{{ user.settings.mail_sender or '—' }}</div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:4px;">Recipient</div>
+        <div style="font-size:.875rem;font-weight:500;">{{ user.settings.mail_recipient or '—' }}</div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:4px;">Interval</div>
+        <div style="font-size:.875rem;font-weight:500;">Every {{ user.settings.check_interval_minutes }} min</div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <a href="{{ url_for('settings') }}" class="btn btn-outline-secondary w-100" style="margin-top:4px;">
+          <i class="bi bi-gear"></i> Configure
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('singleIPForm').addEventListener('submit', function() {
+  document.getElementById('btnText').classList.add('d-none');
+  document.getElementById('btnSpinner').classList.remove('d-none');
+  document.getElementById('loadingOverlay').classList.remove('d-none');
+});
+{% if ip_count > 0 %}
+document.getElementById('runBatchBtn').addEventListener('click', function() {
+  document.getElementById('loadingOverlay').classList.remove('d-none');
+});
+{% endif %}
+</script>
+{% endblock %}

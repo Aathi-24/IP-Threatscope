@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% set pct = ((blocked / total * 100) | int) if total > 0 else 0 %}
+{% if pct == 0 %}
+  {% set threat_class = 'threat-clean' %}{% set threat_label = 'Clean' %}
+{% elif pct <= 20 %}
+  {% set threat_class = 'threat-low' %}{% set threat_label = 'Low Risk' %}
+{% elif pct <= 50 %}
+  {% set threat_class = 'threat-medium' %}{% set threat_label = 'Medium Risk' %}
+{% elif pct <= 80 %}
+  {% set threat_class = 'threat-high' %}{% set threat_label = 'High Risk' %}
+{% else %}
+  {% set threat_class = 'threat-critical' %}{% set threat_label = 'Critical' %}
+{% endif %}
+{% set bar_class = 'green' if pct == 0 else ('amber' if pct <= 40 else 'red') %}
+
+{% block title %}{{ ip }} – Results{% endblock %}
+{% block page_heading %}Scan Results{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-ghost">
+    <i class="bi bi-arrow-left"></i> Dashboard
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<ol class="breadcrumb mb-3">
+  <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+  <li class="breadcrumb-item active">{{ ip }}</li>
+</ol>
+
+<!-- Batch navigation bar -->
+{% if is_batch and batch_info %}
+<div class="card mb-3" style="background:#f8fafc;">
+  <div class="card-body" style="padding:12px 18px;">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div style="font-size:.85rem;color:var(--text-secondary);">
+        <i class="bi bi-layers me-1" style="color:var(--accent);"></i>
+        Batch analysis — IP <strong>{{ batch_info.current }}</strong> of <strong>{{ batch_info.total }}</strong>
+      </div>
+      <div class="d-flex gap-2">
+        {% if batch_info.has_prev %}
+        <a href="{{ url_for('view_batch_ip', index=batch_info.current - 2) }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-chevron-left"></i> Previous
+        </a>
+        {% else %}
+        <button class="btn btn-sm btn-outline-secondary" disabled><i class="bi bi-chevron-left"></i> Previous</button>
+        {% endif %}
+        {% if batch_info.has_next %}
+        <a href="{{ url_for('view_batch_ip', index=batch_info.current) }}" class="btn btn-sm btn-primary">
+          Next <i class="bi bi-chevron-right"></i>
+        </a>
+        {% else %}
+        <button class="btn btn-sm btn-outline-secondary" disabled>Next <i class="bi bi-chevron-right"></i></button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Verdict banner -->
+<div class="verdict-banner {{ 'safe' if verdict == 'Safe' else 'suspicious' }} mb-4">
+  <div class="verdict-icon">
+    {% if verdict == 'Safe' %}
+    <i class="bi bi-shield-check"></i>
+    {% else %}
+    <i class="bi bi-shield-exclamation"></i>
+    {% endif %}
+  </div>
+  <div>
+    <div class="verdict-title">{{ verdict }}: {{ ip }}</div>
+    <div class="verdict-sub">
+      Analyzed {{ total }} vendor{{ 's' if total != 1 else '' }} · {{ blocked }} flagged
+      &nbsp;·&nbsp;
+      <span class="threat-badge {{ threat_class }}" style="font-size:.72rem;vertical-align:middle;">{{ threat_label }}</span>
+    </div>
+  </div>
+  <div class="ms-auto d-none d-sm-block">
+    <div style="text-align:right;font-size:.75rem;color:var(--text-secondary);margin-bottom:4px;">Detection Rate</div>
+    <div style="font-size:1.5rem;font-weight:800;{% if pct > 50 %}color:var(--danger){% elif pct > 0 %}color:var(--warning){% else %}color:var(--success){% endif %}">{{ pct }}%</div>
+  </div>
+</div>
+
+<!-- Stat cards row -->
+<div class="row g-3 mb-4">
+  <div class="col-4">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="bi bi-building"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ total }}</div>
+        <div class="stat-label">Total Vendors</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-shield-check"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ safe }}</div>
+        <div class="stat-label">Safe</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="stat-card" role="button" data-bs-toggle="modal" data-bs-target="#blockedVendorsModal">
+      <div class="stat-icon red"><i class="bi bi-shield-x"></i></div>
+      <div class="stat-info">
+        <div class="stat-value" style="{% if blocked > 0 %}color:var(--danger){% endif %}">{{ blocked }}</div>
+        <div class="stat-label">Blocked
+          {% if blocked > 0 %}<i class="bi bi-chevron-right" style="font-size:.7rem;"></i>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detection progress -->
+<div class="card mb-4">
+  <div class="card-body" style="padding:16px 20px;">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <span style="font-size:.8rem;font-weight:600;color:var(--text-secondary);">Vendor Detection Rate</span>
+      <span class="threat-badge {{ threat_class }}" style="font-size:.72rem;">{{ pct }}% flagged</span>
+    </div>
+    <div class="detection-bar-wrap">
+      <div class="detection-bar {{ bar_class }}" id="detectionBar" style="width:0%"></div>
+    </div>
+    <div class="d-flex justify-content-between mt-1">
+      <span style="font-size:.72rem;color:var(--text-muted);">0% — Clean</span>
+      <span style="font-size:.72rem;color:var(--text-muted);">100% — All vendors blocked</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main two-column content -->
+<div class="row g-3 mb-4">
+
+  <!-- Left: IP info + actions -->
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header">
+        <i class="bi bi-info-circle" style="color:var(--accent);"></i> IP Summary
+      </div>
+      <div class="card-body">
+        <div style="margin-bottom:14px;">
+          <div style="font-size:.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:6px;">Analyzed IP</div>
+          <div class="ip-pill">
+            {{ ip }}
+            <button class="ip-copy-btn" onclick="copyText('{{ ip }}', this)" title="Copy IP">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="row g-2">
+          <div class="col-6">
+            <div style="font-size:.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:2px;">Total Reports</div>
+            <div style="font-size:.9rem;font-weight:600;">{{ total_reports }}</div>
+          </div>
+          <div class="col-6">
+            <div style="font-size:.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:2px;">Last Reported</div>
+            <div style="font-size:.9rem;font-weight:600;">{{ last_reported }}</div>
+          </div>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-warning mt-3" style="margin-bottom:0;">
+          <i class="bi bi-exclamation-triangle"></i>
+          <small>Partial results: {{ error }}</small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="d-grid gap-2">
+      <a href="{{ url_for('details', ip=ip) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-diagram-3"></i> Full IP Intelligence Report
+      </a>
+      <a href="{{ url_for('download_blocked_report') }}" class="btn btn-danger">
+        <i class="bi bi-download"></i> Download Blocked Report (CSV)
+      </a>
+      <a href="{{ url_for('download_csv', ip=ip) }}" class="btn btn-ghost" style="font-size:.82rem;">
+        <i class="bi bi-file-earmark-spreadsheet"></i> Download All Vendors (CSV)
+      </a>
+    </div>
+  </div>
+
+  <!-- Right: Chart -->
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header">
+        <i class="bi bi-pie-chart" style="color:var(--accent);"></i> Detection Summary
+      </div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <canvas id="summaryChart" data-safe="{{ safe }}" data-blocked="{{ blocked }}"
+                style="max-height:230px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Vendor table -->
+<div class="card">
+  <div class="card-header">
+    <i class="bi bi-building" style="color:var(--accent);"></i>
+    Vendors
+    <span class="badge badge-primary ms-1">{{ total }}</span>
+    <span class="ms-auto" style="font-size:.78rem;color:var(--text-muted);font-weight:400;">
+      Click a vendor name for detailed results
+    </span>
+  </div>
+  <div style="padding:8px 16px;border-bottom:1px solid var(--border);background:#f8fafc;">
+    <input type="text" id="vendorSearch" class="form-control form-control-sm"
+           style="max-width:260px;" placeholder="&#xF52A; Filter vendors…">
+  </div>
+  <div id="vendorList">
+    {% for row in results %}
+    <div class="vendor-row" data-name="{{ row.Vendor | lower }}">
+      <div class="vendor-dot {{ 'blocked' if row.Blocked == 'Blocked' else 'safe' }}"></div>
+      <a href="{{ url_for('vendor_details', vendor_name=row.Vendor) }}" class="vendor-name-link">
+        {{ row.Vendor }}
+      </a>
+      {% if row.Blocked == 'Blocked' %}
+      <span class="badge badge-danger ms-auto">Blocked</span>
+      {% else %}
+      <span class="badge badge-success ms-auto">Safe</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Blocked vendors modal -->
+<div class="modal fade" id="blockedVendorsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title"><i class="bi bi-shield-x me-2" style="color:var(--danger);"></i>Blocked Vendors</div>
+          <div style="font-size:.78rem;color:var(--text-muted);margin-top:2px;">
+            Click a vendor name to see full details
+          </div>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:12px;">
+        {% set blocked_vendors = results | selectattr("Blocked", "equalto", "Blocked") | list %}
+        {% if blocked_vendors %}
+        {% for row in blocked_vendors %}
+        <div class="vendor-row">
+          <div class="vendor-dot blocked"></div>
+          <a href="{{ url_for('vendor_details', vendor_name=row.Vendor) }}" class="vendor-name-link">
+            {{ row.Vendor }}
+          </a>
+          <span class="badge badge-danger ms-auto">Blocked</span>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state" style="padding:20px;">
+          <i class="bi bi-shield-check" style="font-size:2rem;color:var(--success);"></i>
+          <p style="margin-top:8px;">No vendors flagged this IP.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Animated detection bar
+setTimeout(() => {
+  document.getElementById('detectionBar').style.width = '{{ pct }}%';
+}, 200);
+
+// Vendor filter
+document.getElementById('vendorSearch').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#vendorList .vendor-row').forEach(row => {
+    row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+  });
+});
+
+// Pie chart
+const canvas = document.getElementById('summaryChart');
+const safeCount = Number(canvas.dataset.safe) || 0;
+const blockedCount = Number(canvas.dataset.blocked) || 0;
+new Chart(canvas, {
+  type: 'doughnut',
+  data: {
+    labels: ['Safe', 'Blocked'],
+    datasets: [{
+      data: [safeCount, blockedCount],
+      backgroundColor: ['#22c55e', '#ef4444'],
+      borderWidth: 0,
+      hoverOffset: 6
+    }]
+  },
+  options: {
+    cutout: '70%',
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          padding: 20,
+          font: { size: 13, family: 'Inter', weight: '600' },
+          usePointStyle: true,
+          pointStyleWidth: 10
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed / (safeCount + blockedCount) * 100)}%)`
+        }
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

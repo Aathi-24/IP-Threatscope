@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}{{ ip }} – Full Report{% endblock %}
+{% block page_heading %}Full IP Intelligence{% endblock %}
+
+{% block topbar_actions %}
+  <a href="javascript:history.back()" class="btn btn-sm btn-ghost">
+    <i class="bi bi-arrow-left"></i> Back to Results
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<ol class="breadcrumb mb-4">
+  <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+  <li class="breadcrumb-item">Results</li>
+  <li class="breadcrumb-item active">{{ ip }} — Details</li>
+</ol>
+
+<!-- IP Hero -->
+<div class="card mb-4" style="background:linear-gradient(135deg,#1e3a5f 0%,#0f172a 100%);border:none;color:#fff;">
+  <div class="card-body" style="padding:24px 28px;">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div style="width:52px;height:52px;border-radius:14px;background:rgba(59,130,246,0.25);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">
+        <i class="bi bi-diagram-3"></i>
+      </div>
+      <div>
+        <div style="font-size:.72rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">
+          Full Intelligence Report
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="ip-pill" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);color:#fff;">
+            {{ ip }}
+          </span>
+          <button class="ip-copy-btn" style="color:#94a3b8;" onclick="copyText('{{ ip }}',this)" title="Copy IP">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- WHOIS / Network Info -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">
+        <i class="bi bi-diagram-3" style="color:var(--accent);"></i> Network / WHOIS
+      </div>
+      <div class="card-body">
+        {% set fields = [
+          ('ASN', whois.asn),
+          ('ASN Description', whois.asn_description),
+          ('Registry', whois.asn_registry),
+          ('CIDR', whois.asn_cidr),
+          ('Country', whois.asn_country_code),
+          ('ASN Date', whois.asn_date),
+          ('Network Name', whois.network_name),
+          ('Network Handle', whois.network_handle),
+          ('Network Type', whois.network_type),
+          ('Country', whois.country),
+          ('CIDR', whois.cidr),
+          ('Start Address', whois.start_address),
+          ('End Address', whois.end_address),
+          ('Created', whois.created),
+          ('Remarks', whois.remarks),
+        ] %}
+        {% for label, val in fields %}
+        {% if val and val != 'N/A' and val != '' %}
+        <div class="d-flex align-items-start gap-2 mb-2 pb-2" style="border-bottom:1px solid #f1f5f9;">
+          <span style="font-size:.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;min-width:110px;padding-top:1px;flex-shrink:0;">{{ label }}</span>
+          <span style="font-size:.875rem;color:var(--text-primary);font-weight:500;word-break:break-all;">{{ val }}</span>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- AbuseIPDB Info -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">
+        <i class="bi bi-shield-exclamation" style="color:var(--danger);"></i> AbuseIPDB Intelligence
+      </div>
+      <div class="card-body">
+        <!-- Abuse score gauge -->
+        <div class="mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span style="font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Abuse Confidence Score</span>
+            <span style="font-size:1.5rem;font-weight:800;color:{% if abuse.Abuse_Score | int > 50 %}var(--danger){% elif abuse.Abuse_Score | int > 20 %}var(--warning){% else %}var(--success){% endif %};">
+              {{ abuse.Abuse_Score }}%
+            </span>
+          </div>
+          <div class="detection-bar-wrap">
+            <div class="detection-bar {% if abuse.Abuse_Score | int > 50 %}red{% elif abuse.Abuse_Score | int > 20 %}amber{% else %}green{% endif %}"
+                 id="abuseBar" style="width:0%;" data-target="{{ abuse.Abuse_Score }}"></div>
+          </div>
+        </div>
+
+        {% set abuse_fields = [
+          ('ISP', abuse.ISP, 'bi-building'),
+          ('Country', abuse.Country, 'bi-geo-alt'),
+          ('Usage Type', abuse.Usage_Type, 'bi-pc-display'),
+          ('Domain', abuse.Domain, 'bi-link-45deg'),
+          ('IP Version', abuse.IP_Version, 'bi-layers'),
+          ('Is Public', abuse.Is_Public, 'bi-globe2'),
+          ('Hostnames', abuse.Host_Names, 'bi-server'),
+          ('Whitelisted', abuse.Is_Whitelisted, 'bi-check-circle'),
+          ('Total Reports', abuse.Total_Reports, 'bi-flag'),
+        ] %}
+        {% for label, val, icon in abuse_fields %}
+        {% if val is not none and val != '' %}
+        <div class="d-flex align-items-start gap-2 mb-2 pb-2" style="border-bottom:1px solid #f1f5f9;">
+          <i class="bi {{ icon }}" style="color:var(--accent);font-size:.85rem;margin-top:2px;flex-shrink:0;width:16px;text-align:center;"></i>
+          <span style="font-size:.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;min-width:90px;padding-top:1px;flex-shrink:0;">{{ label }}</span>
+          <span style="font-size:.875rem;color:var(--text-primary);font-weight:500;word-break:break-all;">{{ val }}</span>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Animate abuse score bar
+setTimeout(() => {
+  const bar = document.getElementById('abuseBar');
+  if (bar) bar.style.width = bar.dataset.target + '%';
+}, 250);
+</script>
+{% endblock %}

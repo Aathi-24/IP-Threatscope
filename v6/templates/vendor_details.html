@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}{{ vendor_name }} – Vendor Details{% endblock %}
+{% block page_heading %}Vendor Details{% endblock %}
+
+{% block topbar_actions %}
+  <a href="javascript:history.back()" class="btn btn-sm btn-ghost">
+    <i class="bi bi-arrow-left"></i> Back
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<ol class="breadcrumb mb-4">
+  <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+  <li class="breadcrumb-item active">{{ vendor_name }}</li>
+</ol>
+
+<!-- Header card -->
+<div class="card mb-4" style="background:linear-gradient(135deg,#1e3a5f 0%,#0f172a 100%);border:none;color:#fff;">
+  <div class="card-body" style="padding:24px 28px;">
+    <div class="d-flex align-items-center gap-3">
+      <div style="width:52px;height:52px;border-radius:14px;background:rgba(59,130,246,0.25);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">
+        <i class="bi bi-building"></i>
+      </div>
+      <div>
+        <h1 style="font-size:1.4rem;font-weight:800;color:#fff;margin:0;">{{ vendor_name }}</h1>
+        <p style="color:#94a3b8;font-size:.85rem;margin:2px 0 0;">
+          {% if is_batch %}
+            Results across all IPs checked in this batch run
+          {% else %}
+            Detection result for the scanned IP
+          {% endif %}
+        </p>
+      </div>
+      <div class="ms-auto text-end d-none d-md-block">
+        {% set blocked_count = rows | selectattr('status', 'equalto', 'Blocked') | list | length %}
+        {% if blocked_count > 0 %}
+        <div style="font-size:2rem;font-weight:800;color:#f87171;">{{ blocked_count }}</div>
+        <div style="font-size:.75rem;color:#94a3b8;">IP{{ 's' if blocked_count != 1 else '' }} Blocked</div>
+        {% else %}
+        <div style="font-size:2rem;font-weight:800;color:#4ade80;">{{ rows | length }}</div>
+        <div style="font-size:.75rem;color:#94a3b8;">IP{{ 's' if rows|length != 1 else '' }} Clean</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary pills -->
+{% set blocked_count = rows | selectattr('status', 'equalto', 'Blocked') | list | length %}
+{% set safe_count = rows | length - blocked_count %}
+<div class="d-flex gap-3 mb-4 flex-wrap">
+  <div class="stat-card" style="padding:14px 18px;flex:1;min-width:130px;">
+    <div class="stat-icon blue" style="width:38px;height:38px;font-size:1rem;"><i class="bi bi-globe2"></i></div>
+    <div class="stat-info">
+      <div class="stat-value" style="font-size:1.4rem;">{{ rows | length }}</div>
+      <div class="stat-label">IPs Checked</div>
+    </div>
+  </div>
+  <div class="stat-card" style="padding:14px 18px;flex:1;min-width:130px;">
+    <div class="stat-icon red" style="width:38px;height:38px;font-size:1rem;"><i class="bi bi-shield-x"></i></div>
+    <div class="stat-info">
+      <div class="stat-value" style="font-size:1.4rem;{% if blocked_count > 0 %}color:var(--danger){% endif %}">{{ blocked_count }}</div>
+      <div class="stat-label">Blocked</div>
+    </div>
+  </div>
+  <div class="stat-card" style="padding:14px 18px;flex:1;min-width:130px;">
+    <div class="stat-icon green" style="width:38px;height:38px;font-size:1rem;"><i class="bi bi-shield-check"></i></div>
+    <div class="stat-info">
+      <div class="stat-value" style="font-size:1.4rem;">{{ safe_count }}</div>
+      <div class="stat-label">Safe</div>
+    </div>
+  </div>
+</div>
+
+<!-- Results table -->
+<div class="card">
+  <div class="card-header">
+    <i class="bi bi-table" style="color:var(--accent);"></i>
+    Detection Results
+    <div class="ms-auto d-flex gap-2">
+      <input type="text" id="vendorDetailSearch" class="form-control form-control-sm"
+             style="width:200px;" placeholder="Filter IPs…">
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table" id="vendorDetailTable">
+      <thead>
+        <tr>
+          <th>IP Address</th>
+          <th>Status</th>
+          <th>Reason</th>
+          <th>Last Reported</th>
+          <th>Total Reports</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr data-ip="{{ row.ip }}">
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:8px;height:8px;border-radius:50%;background:{% if row.status=='Blocked' %}var(--danger){% else %}var(--success){% endif %};flex-shrink:0;"></div>
+              <span class="monospace fw-600">{{ row.ip }}</span>
+              <button class="ip-copy-btn" onclick="copyText('{{ row.ip }}',this)" title="Copy">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+          </td>
+          <td>
+            {% if row.status == 'Blocked' %}
+            <span class="badge badge-danger"><i class="bi bi-x-circle"></i> Blocked</span>
+            {% else %}
+            <span class="badge badge-success"><i class="bi bi-check-circle"></i> Safe</span>
+            {% endif %}
+          </td>
+          <td style="color:var(--text-secondary);">{{ row.reason or '—' }}</td>
+          <td style="color:var(--text-secondary);white-space:nowrap;">{{ row.last_reported or '—' }}</td>
+          <td>
+            {% if row.total_reports and row.total_reports != 'N/A' and row.total_reports != 0 %}
+            <span class="fw-600" style="color:{% if row.status=='Blocked' %}var(--danger){% else %}var(--text-primary){% endif %};">
+              {{ row.total_reports }}
+            </span>
+            {% else %}
+            <span style="color:var(--text-muted);">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('vendorDetailSearch').addEventListener('input', function() {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#vendorDetailTable tbody tr').forEach(row => {
+    row.style.display = row.dataset.ip.includes(q) ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}
