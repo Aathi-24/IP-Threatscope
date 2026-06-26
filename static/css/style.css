@@ -714,7 +714,7 @@ div.dataTables_wrapper div.dataTables_info { padding-top: 8px; font-size: 0.78re
 .badge-warning { background: #f3c303; color: #f56206; font-weight: 700; }
 .badge-info { background: #0195f8; color: #0369a1; font-weight: 700; }
 .badge-secondary { background: #0966df; color: #0453d3; font-weight: 700; }
-.badge-primary { background: var(--accent-light); color: var(--accent-dark); font-weight: 700; }
+.badge-primary { background: #0e61cc; color: var(--accent-dark); font-weight: 700; }
 /* Bootstrap compatibility */
 .bg-success { background: var(--success) !important; }
 .bg-danger { background: var(--danger) !important; }
