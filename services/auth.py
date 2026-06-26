@@ -1,37 +1,48 @@
 """
 User authentication and account management.
 
-All user data is stored in a single JSON file (data/users.json) which
-acts as the application's user database. No external database is needed.
+Users are created by a NAKOA Technologies admin (via create_user.py, or
+through the in-app Admin -> Users screen). Self-registration is not
+available through the web interface.
+
+Role model:
+  Any account whose email domain is "nakoatech.com" is an ADMIN.
+  Every other domain is a regular USER.
+  Role is derived from the email domain at login time -- it is never
+  stored, so there is nothing to tamper with in users.json.
 
 Schema for data/users.json:
 {
   "users": {
-    "user@gmail.com": {
-      "email": "user@gmail.com",
+    "user@company.com": {
+      "email": "user@company.com",
       "password_hash": "<werkzeug pbkdf2 hash>",
       "settings": {
-        "mail_sender": "",
-        "mail_recipient": "",
-        "mail_app_password": "",
-        "smtp_server": "smtp.gmail.com",
-        "smtp_port": 587,
         "check_interval_minutes": 60,
         "missed_check_grace_minutes": 10
       },
-      "ips": ["1.2.3.4", "8.8.8.8"],
+      "mail_settings": {
+        "mail_sender":        "",
+        "mail_smtp_password": "",
+        "mail_recipient":     "",
+        "smtp_server":        "",
+        "smtp_port":          587,
+        "smtp_security":      "TLS"
+      },
+      "ips": [],
       "scheduler_state": {
-        "last_success_at": null,
-        "last_success_iso": null,
+        "last_success_at":    null,
+        "last_success_iso":   null,
         "last_alert_sent_for": null
       }
     }
   }
 }
 
-Thread-safety: reads and writes are wrapped in a threading.Lock so
-background scheduler threads and web-request threads can't corrupt the
-file if they happen to write at the same moment.
+NOTE: "mail_settings" is editable only by accounts on the admin domain,
+via the Admin Console -> Email Configuration screen. Regular users never
+see or edit their own mail_settings -- there is no form for it in the
+user-facing Settings page. The FLASK_SECRET_KEY still comes from .env.
 """
 
 import json
@@ -46,13 +57,25 @@ USERS_FILE = os.path.join(_APP_DIR, "data", "users.json")
 
 _lock = threading.Lock()
 
+# -- Role model ---------------------------------------------------------------
+ADMIN_DOMAIN = "nakoatech.com"
 
-# ---------------------------------------------------------------------------
-# Low-level JSON helpers
-# ---------------------------------------------------------------------------
+
+def get_role_for_email(email):
+    """Derive role purely from the email domain. Never stored -- always
+    recomputed, so there's no 'role' field in users.json to tamper with."""
+    email = (email or "").strip().lower()
+    domain = email.rsplit("@", 1)[-1] if "@" in email else ""
+    return "admin" if domain == ADMIN_DOMAIN else "user"
+
+
+def is_admin_email(email):
+    return get_role_for_email(email) == "admin"
+
+
+# ── Low-level JSON helpers ───────────────────────────────────────────────────
 
 def _load_db():
-    """Load the full users database from disk. Returns {'users': {...}}."""
     if not os.path.exists(USERS_FILE):
         return {"users": {}}
     try:
@@ -65,7 +88,6 @@ def _load_db():
 
 
 def _save_db(db):
-    """Write the full users database to disk atomically."""
     os.makedirs(os.path.dirname(USERS_FILE), exist_ok=True)
     tmp = USERS_FILE + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
@@ -74,76 +96,80 @@ def _save_db(db):
 
 
 def _default_user(email):
-    """Return a blank user record with sensible defaults."""
     return {
         "email": email,
         "password_hash": "",
         "settings": {
-            "mail_sender": email,
-            "mail_recipient": email,
-            "mail_app_password": "",
-            "smtp_server": "smtp.gmail.com",
-            "smtp_port": 587,
-            "check_interval_minutes": 60,
+            "check_interval_minutes":     60,
             "missed_check_grace_minutes": 10,
+        },
+        "mail_settings": {
+            "mail_sender":        "",
+            "mail_smtp_password": "",
+            "mail_recipient":     "",
+            "smtp_server":        "",
+            "smtp_port":          587,
+            "smtp_security":      "TLS",
         },
         "ips": [],
         "scheduler_state": {
-            "last_success_at": None,
-            "last_success_iso": None,
+            "last_success_at":    None,
+            "last_success_iso":   None,
             "last_alert_sent_for": None,
         },
     }
 
 
-# ---------------------------------------------------------------------------
-# Validation helpers
-# ---------------------------------------------------------------------------
+# ── Validation ───────────────────────────────────────────────────────────────
 
-GMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@gmail\.com$", re.IGNORECASE)
+EMAIL_RE = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
 
 
-def is_valid_gmail(email):
-    """Return True only for valid @gmail.com addresses."""
-    return bool(GMAIL_RE.match(email.strip()))
+def is_valid_email(email):
+    return bool(EMAIL_RE.match(email.strip()))
 
 
 def is_strong_password(password):
-    """Require at least 8 characters. Returns (ok: bool, message: str)."""
     if len(password) < 8:
         return False, "Password must be at least 8 characters long."
     return True, ""
 
 
-# ---------------------------------------------------------------------------
-# Public API used by app.py
-# ---------------------------------------------------------------------------
+# ── Public API ───────────────────────────────────────────────────────────────
 
 def get_user(email):
-    """Return the user dict for *email*, or None if they don't exist."""
     with _lock:
         db = _load_db()
-        return db["users"].get(email.strip().lower())
+        user = db["users"].get(email.strip().lower())
+        if user is None:
+            return None
+        s = user.get("settings", {})
+        s.setdefault("check_interval_minutes", 60)
+        s.setdefault("missed_check_grace_minutes", 10)
+        ms = user.setdefault("mail_settings", {})
+        ms.setdefault("mail_sender", "")
+        ms.setdefault("mail_smtp_password", "")
+        ms.setdefault("mail_recipient", "")
+        ms.setdefault("smtp_server", "")
+        ms.setdefault("smtp_port", 587)
+        ms.setdefault("smtp_security", "TLS")
+        # Role is derived, never stored -- attach for template convenience.
+        user["role"] = get_role_for_email(user.get("email", email))
+        return user
 
 
 def all_users():
-    """Return the full {email: user_dict} mapping (a snapshot copy)."""
     with _lock:
         db = _load_db()
         return dict(db["users"])
 
 
 def register_user(email, password):
-    """Create a new user account.
-
-    Returns (success: bool, message: str).
-    Fails if the email is not a Gmail address, the password is too weak,
-    or the account already exists.
-    """
+    """Create a new account. Intended for admin use via create_user.py."""
     email = email.strip().lower()
 
-    if not is_valid_gmail(email):
-        return False, "Please use a valid Gmail address (@gmail.com) to register."
+    if not is_valid_email(email):
+        return False, "Please provide a valid email address."
 
     ok, msg = is_strong_password(password)
     if not ok:
@@ -158,64 +184,41 @@ def register_user(email, password):
         db["users"][email] = user
         _save_db(db)
 
-    return True, "Account created successfully. You can now log in."
+    return True, f"Account created for {email}."
 
 
 def verify_login(email, password):
-    """Verify email + password.
-
-    Returns (success: bool, message: str).
-    """
     email = email.strip().lower()
     user = get_user(email)
-
     if user is None:
         return False, "No account found with that email address."
-
     if not check_password_hash(user["password_hash"], password):
         return False, "Incorrect password."
-
     return True, "Login successful."
 
 
 def change_password(email, current_password, new_password):
-    """Change a user's password after verifying the current one.
-
-    Returns (success: bool, message: str).
-    """
     email = email.strip().lower()
-
     ok_login, msg = verify_login(email, current_password)
     if not ok_login:
-        return False, f"Current password is incorrect: {msg}"
-
+        return False, f"Current password is incorrect."
     ok_strength, msg = is_strong_password(new_password)
     if not ok_strength:
         return False, msg
-
     if current_password == new_password:
         return False, "New password must be different from the current password."
-
     with _lock:
         db = _load_db()
         if email not in db["users"]:
             return False, "User not found."
         db["users"][email]["password_hash"] = generate_password_hash(new_password)
         _save_db(db)
-
     return True, "Password changed successfully."
 
 
 def save_user_settings(email, settings):
-    """Persist a user's mail/scheduler settings dict.
-
-    Only the keys that exist in the current record are updated, so
-    unknown keys from a form POST can't pollute the data.
-    """
     email = email.strip().lower()
     allowed_keys = {
-        "mail_sender", "mail_recipient", "mail_app_password",
-        "smtp_server", "smtp_port",
         "check_interval_minutes", "missed_check_grace_minutes",
     }
     with _lock:
@@ -226,37 +229,28 @@ def save_user_settings(email, settings):
         for key in allowed_keys:
             if key in settings:
                 val = settings[key]
-                # Coerce numeric fields
-                if key in ("smtp_port", "check_interval_minutes", "missed_check_grace_minutes"):
-                    try:
-                        val = int(val)
-                    except (TypeError, ValueError):
-                        continue
+                try:
+                    val = int(val)
+                except (TypeError, ValueError):
+                    continue
                 current[key] = val
         _save_db(db)
     return True, "Settings saved."
 
 
 def get_user_ips(email):
-    """Return the list of IPs stored for this user."""
     user = get_user(email)
     return list(user["ips"]) if user else []
 
 
 def add_user_ip(email, ip):
-    """Append an IP to the user's list (no duplicates).
-
-    Returns (success: bool, message: str).
-    """
     import ipaddress as _ip
     email = email.strip().lower()
     ip = ip.strip()
-
     try:
         _ip.ip_address(ip)
     except ValueError:
         return False, f"'{ip}' is not a valid IP address."
-
     with _lock:
         db = _load_db()
         if email not in db["users"]:
@@ -266,20 +260,13 @@ def add_user_ip(email, ip):
             return False, f"{ip} is already in your list."
         ips.append(ip)
         _save_db(db)
-
     return True, f"{ip} added."
 
 
 def add_user_ips_bulk(email, raw_text):
-    """Parse a newline/comma-separated block of IPs and add all valid ones.
-
-    Returns (added: list, skipped: list).
-    """
     import ipaddress as _ip
     email = email.strip().lower()
-    added = []
-    skipped = []
-
+    added, skipped = [], []
     candidates = re.split(r"[\n\r,;]+", raw_text)
     with _lock:
         db = _load_db()
@@ -302,15 +289,10 @@ def add_user_ips_bulk(email, raw_text):
             db["users"][email]["ips"].append(ip)
             added.append(ip)
         _save_db(db)
-
     return added, skipped
 
 
 def remove_user_ip(email, ip):
-    """Remove an IP from the user's list.
-
-    Returns (success: bool, message: str).
-    """
     email = email.strip().lower()
     with _lock:
         db = _load_db()
@@ -325,7 +307,6 @@ def remove_user_ip(email, ip):
 
 
 def get_user_scheduler_state(email):
-    """Return the per-user scheduler state dict."""
     user = get_user(email)
     if user is None:
         return {"last_success_at": None, "last_success_iso": None, "last_alert_sent_for": None}
@@ -333,7 +314,6 @@ def get_user_scheduler_state(email):
 
 
 def save_user_scheduler_state(email, state):
-    """Overwrite the per-user scheduler state dict in users.json."""
     email = email.strip().lower()
     with _lock:
         db = _load_db()
@@ -341,3 +321,120 @@ def save_user_scheduler_state(email, state):
             return
         db["users"][email]["scheduler_state"] = state
         _save_db(db)
+
+
+# -- Admin-only helpers --------------------------------------------------------
+# These are only ever called from routes guarded by an admin_required decorator
+# in app.py, never exposed to regular users.
+
+def list_users_summary():
+    """Return a list of all accounts with display-safe fields only
+    (no password hashes, no SMTP password). Sorted with admins first,
+    then by email."""
+    with _lock:
+        db = _load_db()
+        users = db["users"]
+    summary = []
+    for email, u in users.items():
+        ms = u.get("mail_settings", {}) or {}
+        configured = all(
+            (ms.get(k) or "").strip() if isinstance(ms.get(k), str) else bool(ms.get(k))
+            for k in ("mail_sender", "mail_smtp_password", "mail_recipient", "smtp_server")
+        )
+        summary.append({
+            "email": email,
+            "role": get_role_for_email(email),
+            "ip_count": len(u.get("ips", [])),
+            "last_success_at": (u.get("scheduler_state", {}) or {}).get("last_success_at") or "Never",
+            "check_interval_minutes": (u.get("settings", {}) or {}).get("check_interval_minutes", 60),
+            "mail_configured": configured,
+            "mail_recipient": ms.get("mail_recipient", ""),
+        })
+    summary.sort(key=lambda r: (r["role"] != "admin", r["email"]))
+    return summary
+
+
+def get_user_mail_settings(target_email):
+    """Admin-only read of a specific user's mail/SMTP settings, including
+    the SMTP password (needed to pre-fill the edit form). Never call this
+    from a context a non-admin can reach."""
+    target_email = target_email.strip().lower()
+    with _lock:
+        db = _load_db()
+        user = db["users"].get(target_email)
+        if user is None:
+            return None
+        ms = user.setdefault("mail_settings", {})
+        ms.setdefault("mail_sender", "")
+        ms.setdefault("mail_smtp_password", "")
+        ms.setdefault("mail_recipient", "")
+        ms.setdefault("smtp_server", "")
+        ms.setdefault("smtp_port", 587)
+        ms.setdefault("smtp_security", "TLS")
+        return dict(ms)
+
+
+def admin_save_user_mail_settings(target_email, mail_settings):
+    """Admin-only write of a specific user's mail/SMTP settings. Each user
+    can have a completely different sender/recipient/SMTP server, so the
+    scheduler emails that user's own report using their own configuration."""
+    target_email = target_email.strip().lower()
+    allowed_keys = {
+        "mail_sender", "mail_smtp_password", "mail_recipient",
+        "smtp_server", "smtp_port", "smtp_security",
+    }
+    with _lock:
+        db = _load_db()
+        if target_email not in db["users"]:
+            return False, "User not found."
+        current = db["users"][target_email].setdefault("mail_settings", {})
+        for key in allowed_keys:
+            if key in mail_settings:
+                val = mail_settings[key]
+                if key == "smtp_port":
+                    try:
+                        val = int(val)
+                    except (TypeError, ValueError):
+                        continue
+                elif isinstance(val, str):
+                    val = val.strip()
+                current[key] = val
+        _save_db(db)
+    return True, f"Email configuration saved for {target_email}."
+
+
+def admin_create_user(email, password):
+    """Admin-initiated account creation. Thin wrapper around register_user
+    kept separate so the call site in app.py reads clearly as an admin action."""
+    return register_user(email, password)
+
+
+def admin_reset_password(target_email, new_password):
+    """Let an admin set a new password for any user (e.g. when a user
+    forgot theirs), bypassing the current-password check."""
+    target_email = target_email.strip().lower()
+    ok_strength, msg = is_strong_password(new_password)
+    if not ok_strength:
+        return False, msg
+    with _lock:
+        db = _load_db()
+        if target_email not in db["users"]:
+            return False, "User not found."
+        db["users"][target_email]["password_hash"] = generate_password_hash(new_password)
+        _save_db(db)
+    return True, f"Password reset for {target_email}."
+
+
+def admin_delete_user(target_email, requesting_admin_email):
+    """Remove a user account entirely. Admins cannot delete their own
+    account through this path to avoid accidental lockout."""
+    target_email = target_email.strip().lower()
+    if target_email == requesting_admin_email.strip().lower():
+        return False, "You can't delete your own account while signed in."
+    with _lock:
+        db = _load_db()
+        if target_email not in db["users"]:
+            return False, "User not found."
+        del db["users"][target_email]
+        _save_db(db)
+    return True, f"Account for {target_email} removed."

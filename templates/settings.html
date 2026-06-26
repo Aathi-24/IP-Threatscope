@@ -5,10 +5,9 @@
 {% block content %}
 {% set s = user.settings %}
 
-<!-- Tab bar -->
-<div class="ts-tabs mb-4" id="settingsTabs">
+<div class="ts-tabs mb-4">
   <button class="ts-tab active" onclick="showTab('mail',this)">
-    <i class="bi bi-envelope"></i> Mail &amp; Scheduler
+    <i class="bi bi-alarm"></i> Scheduler
   </button>
   <button class="ts-tab" onclick="showTab('ips',this)">
     <i class="bi bi-list-ul"></i> IP List
@@ -19,89 +18,45 @@
   </button>
 </div>
 
-<!-- ── Tab: Mail & Scheduler ──────────────────────────────────────── -->
+<!-- ── Tab: Scheduler ──────────────────────────────────────────────────── -->
 <div id="tab-mail" class="tab-pane">
   <div class="row g-4">
     <div class="col-lg-7">
       <div class="card">
         <div class="card-header">
-          <i class="bi bi-envelope" style="color:var(--accent);"></i> Email Configuration
+          <i class="bi bi-alarm" style="color:var(--accent);"></i> Scheduler Timing
         </div>
         <div class="card-body">
-          <form method="POST" id="mailForm">
+          <form method="POST" id="schedulerForm">
             <input type="hidden" name="action" value="save_settings">
 
-            <div class="mb-3">
-              <label class="form-label">Sender Gmail Address</label>
-              <input type="email" name="mail_sender" class="form-control"
-                     value="{{ s.mail_sender }}" placeholder="sender@gmail.com">
-              <div class="form-text">The Gmail account that sends the automated reports.</div>
+            <div class="alert alert-info" style="font-size:.8rem;margin-bottom:20px;">
+              <i class="bi bi-info-circle"></i>
+              <span>
+                Email delivery for scheduled reports is configured by your administrator
+                and isn't editable here. You can still control how often your IP list is
+                checked below.
+              </span>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label">Gmail App Password</label>
-              <div class="input-group">
-                <input type="password" name="mail_app_password" id="appPw" class="form-control"
-                       value="{{ s.mail_app_password }}" placeholder="xxxx xxxx xxxx xxxx">
-                <button type="button" class="btn btn-outline-secondary btn-sm"
-                        onclick="togglePw('appPw',this)" style="border-radius:0 8px 8px 0;">
-                  <i class="bi bi-eye"></i>
-                </button>
-              </div>
-              <div class="form-text">
-                Generate at <a href="https://myaccount.google.com/apppasswords" target="_blank">myaccount.google.com/apppasswords</a>.
-                Your regular Gmail password won't work.
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Recipient Email</label>
-              <input type="email" name="mail_recipient" class="form-control"
-                     value="{{ s.mail_recipient }}" placeholder="recipient@example.com">
-              <div class="form-text">Where blocked-IP reports will be delivered.</div>
-            </div>
-
-            <hr class="ts-divider">
-            <div class="section-title" style="margin-bottom:12px;">
-              <i class="bi bi-server"></i> SMTP (Advanced)
-            </div>
-
-            <div class="row g-2 mb-3">
-              <div class="col-8">
-                <label class="form-label">SMTP Server</label>
-                <input type="text" name="smtp_server" class="form-control" value="{{ s.smtp_server }}">
-              </div>
-              <div class="col-4">
-                <label class="form-label">Port</label>
-                <input type="number" name="smtp_port" class="form-control" value="{{ s.smtp_port }}">
-              </div>
-            </div>
-
-            <hr class="ts-divider">
-            <div class="section-title" style="margin-bottom:12px;">
-              <i class="bi bi-alarm"></i> Scheduler Timing
-            </div>
-
-            <div class="row g-2 mb-4">
-              <div class="col-6">
-                <label class="form-label">Check Interval (min)</label>
+            <div class="row g-3 mb-4">
+              <div class="col-sm-6">
+                <label class="form-label">Check Interval (minutes)</label>
                 <input type="number" name="check_interval_minutes" class="form-control"
                        value="{{ s.check_interval_minutes }}" min="1" max="1440">
-                <div class="form-text">60 = every hour</div>
+                <div class="form-text">60 = run every hour · 0 = disabled</div>
               </div>
-              <div class="col-6">
-                <label class="form-label">Grace Period (min)</label>
+              <div class="col-sm-6">
+                <label class="form-label">Missed-Check Grace (minutes)</label>
                 <input type="number" name="missed_check_grace_minutes" class="form-control"
-                       value="{{ s.missed_check_grace_minutes }}" min="1" max="60">
-                <div class="form-text">Buffer before missed-check alert</div>
+                       value="{{ s.missed_check_grace_minutes }}" min="1" max="120">
+                <div class="form-text">Buffer before a missed-check alert is sent</div>
               </div>
             </div>
 
-            <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-primary">
-                <i class="bi bi-save"></i> Save Mail Settings
-              </button>
-            </div>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save"></i> Save Settings
+            </button>
           </form>
         </div>
       </div>
@@ -114,18 +69,26 @@
         <div class="card-body">
           <div class="row g-2 mb-3">
             <div class="col-6">
-              <div style="font-size:.72rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Last Run</div>
+              <div style="font-size:.7rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Last Run</div>
               <div style="font-size:.85rem;font-weight:600;">{{ scheduler_status.last_success_at }}</div>
             </div>
             <div class="col-6">
-              <div style="font-size:.72rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Next Check</div>
+              <div style="font-size:.7rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:3px;">Next Check</div>
               <div style="font-size:.85rem;font-weight:600;">{{ scheduler_status.next_check_eta }}</div>
             </div>
+          </div>
+          <div class="mb-3" style="font-size:.78rem;color:var(--text-muted);">
+            <i class="bi bi-envelope me-1"></i> Email reports:
+            {% if mail_configured %}
+            <span style="color:var(--success-icon);font-weight:700;">Configured</span>
+            {% else %}
+            <span style="color:var(--danger);font-weight:700;">Not configured</span>
+            {% endif %}
           </div>
           <form method="POST">
             <input type="hidden" name="action" value="run_now">
             <button type="submit" class="btn btn-success w-100">
-              <i class="bi bi-play-fill"></i> Run Check Now
+              <i class="bi bi-play-fill"></i> Run Check Now &amp; Email Report
             </button>
           </form>
         </div>
@@ -134,29 +97,27 @@
       <!-- Quick help -->
       <div class="card" style="background:#f8fafc;border-color:var(--border);">
         <div class="card-body" style="padding:16px;">
-          <div style="font-size:.8rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px;">
-            <i class="bi bi-question-circle me-1"></i> Quick Help
+          <div style="font-size:.8rem;font-weight:700;color:var(--text-secondary);margin-bottom:10px;">
+            <i class="bi bi-question-circle me-1"></i> About Scheduled Checks
           </div>
-          <ul style="font-size:.78rem;color:var(--text-secondary);padding-left:16px;margin:0;line-height:1.9;">
-            <li>Enable 2-Step Verification on your Gmail account first</li>
-            <li>Generate an App Password at Google Account Security</li>
-            <li>The password is 16 characters — no spaces needed</li>
-            <li>Interval = 0 disables the scheduler</li>
-          </ul>
+          <p style="font-size:.78rem;color:var(--text-secondary);margin:0;line-height:1.7;">
+            Once your interval is set, IP Threatscope automatically scans every IP
+            in your list on that schedule and emails a blocked-IP report to the
+            address configured by NAKOA Technologies. If a check is overdue past
+            the grace period, a missed-check alert is sent.
+          </p>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── Tab: IP List ────────────────────────────────────────────────── -->
+<!-- ── Tab: IP List ────────────────────────────────────────────────────── -->
 <div id="tab-ips" class="tab-pane d-none">
   <div class="row g-4">
     <div class="col-lg-5">
-
-      <!-- Add single IP -->
       <div class="card mb-3">
-        <div class="card-header"><i class="bi bi-plus-circle" style="color:var(--success);"></i> Add IP Address</div>
+        <div class="card-header"><i class="bi bi-plus-circle" style="color:var(--success-icon);"></i> Add IP Address</div>
         <div class="card-body">
           <form method="POST">
             <input type="hidden" name="action" value="add_ip">
@@ -168,24 +129,21 @@
           </form>
         </div>
       </div>
-
-      <!-- Bulk add -->
       <div class="card">
         <div class="card-header"><i class="bi bi-files" style="color:var(--accent);"></i> Bulk Add</div>
         <div class="card-body">
           <form method="POST">
             <input type="hidden" name="action" value="bulk_add_ips">
-            <textarea name="bulk_ips" class="form-control mb-2" rows="6"
-                      placeholder="One IP per line:&#10;1.2.3.4&#10;5.6.7.8&#10;9.10.11.12"
+            <textarea name="bulk_ips" class="form-control mb-2" rows="7"
+                      placeholder="One IP per line:&#10;1.2.3.4&#10;5.6.7.8&#10;203.0.113.1"
                       style="font-family:monospace;font-size:.85rem;"></textarea>
             <button type="submit" class="btn btn-outline-secondary w-100">
-              <i class="bi bi-cloud-upload"></i> Add All
+              <i class="bi bi-cloud-upload"></i> Add All Valid IPs
             </button>
           </form>
         </div>
       </div>
     </div>
-
     <div class="col-lg-7">
       <div class="card">
         <div class="card-header">
@@ -198,15 +156,9 @@
           {% endif %}
         </div>
         {% if user.ips %}
-        <div style="overflow-y:auto;max-height:460px;">
-          <table class="table" id="ipTable">
-            <thead>
-              <tr>
-                <th style="width:40px;">#</th>
-                <th>IP Address</th>
-                <th style="width:80px;"></th>
-              </tr>
-            </thead>
+        <div style="overflow-y:auto;max-height:500px;">
+          <table class="table">
+            <thead><tr><th style="width:40px;">#</th><th>IP Address</th><th style="width:60px;"></th></tr></thead>
             <tbody>
               {% for ip in user.ips %}
               <tr>
@@ -217,8 +169,7 @@
                     <input type="hidden" name="action" value="remove_ip">
                     <input type="hidden" name="ip_to_remove" value="{{ ip }}">
                     <button type="submit" class="btn btn-sm btn-outline-danger btn-icon"
-                            onclick="return confirm('Remove {{ ip }} from your list?')"
-                            title="Remove">
+                            onclick="return confirm('Remove {{ ip }}?')">
                       <i class="bi bi-trash3"></i>
                     </button>
                   </form>
@@ -229,10 +180,9 @@
           </table>
         </div>
         {% else %}
-        <div class="empty-state">
-          <i class="bi bi-collection"></i>
+        <div class="empty-state"><i class="bi bi-collection"></i>
           <h6>No IPs yet</h6>
-          <p style="font-size:.82rem;">Add IPs above to enable batch scanning and scheduled email reports.</p>
+          <p style="font-size:.82rem;">Add IPs above to enable batch scanning and scheduled reports.</p>
         </div>
         {% endif %}
       </div>
@@ -240,33 +190,73 @@
   </div>
 </div>
 
-<!-- ── Tab: Security ──────────────────────────────────────────────── -->
+<!-- ── Tab: Security ──────────────────────────────────────────────────── -->
 <div id="tab-security" class="tab-pane d-none">
   <div class="row justify-content-center">
     <div class="col-lg-6">
       <div class="card">
         <div class="card-header">
-          <i class="bi bi-key" style="color:var(--warning);"></i> Change Password
+          <i class="bi bi-key" style="color:var(--warning-icon);"></i> Change Password
         </div>
         <div class="card-body">
           <p style="color:var(--text-secondary);font-size:.875rem;margin-bottom:20px;">
             Signed in as <strong>{{ session.user_email }}</strong>.
-            Update your password below to keep your account secure.
+            Change your current password below.
           </p>
-          <a href="{{ url_for('change_pwd') }}" class="btn btn-warning w-100">
-            <i class="bi bi-key"></i> Change Password
-          </a>
+          <form method="POST">
+            <input type="hidden" name="action" value="change_password">
+            <div class="mb-3">
+              <label class="form-label">Current Password</label>
+              <div class="input-group">
+                <input type="password" name="current_password" id="cur" class="form-control"
+                       placeholder="Your current password" required>
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        onclick="togglePw('cur',this)" style="border-radius:0 8px 8px 0;">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">New Password</label>
+              <div class="input-group">
+                <input type="password" name="new_password" id="np" class="form-control"
+                       placeholder="At least 8 characters"
+                       minlength="8" required oninput="checkStrength(this.value)">
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        onclick="togglePw('np',this)" style="border-radius:0 8px 8px 0;">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="pw-strength" id="pwStrength"></div>
+              <div class="form-text" id="pwHint">Minimum 8 characters</div>
+            </div>
+            <div class="mb-4">
+              <label class="form-label">Confirm New Password</label>
+              <div class="input-group">
+                <input type="password" name="confirm_password" id="cp" class="form-control"
+                       placeholder="Repeat new password" minlength="8" required>
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        onclick="togglePw('cp',this)" style="border-radius:0 8px 8px 0;">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-warning w-100">
+              <i class="bi bi-check-lg"></i> Update Password
+            </button>
+          </form>
         </div>
       </div>
 
-      <div class="card mt-3" style="border-color:#fecaca;background:#fef2f2;">
-        <div class="card-body" style="padding:16px;">
-          <div style="font-size:.8rem;font-weight:700;color:#b91c1c;margin-bottom:8px;">
-            <i class="bi bi-exclamation-triangle me-1"></i> Account Information
+      <div class="card mt-3" style="background:#fef2f2;border-color:#fecaca;">
+        <div class="card-body" style="padding:14px 16px;">
+          <div style="font-size:.78rem;font-weight:700;color:#b91c1c;margin-bottom:6px;">
+            <i class="bi bi-shield-lock me-1"></i> Password Security
           </div>
           <p style="font-size:.78rem;color:#9f1239;margin:0;line-height:1.7;">
-            Your IP list, mail settings, and scan configuration are stored securely on the server.
-            All passwords are hashed before storage — they are never stored in plain text.
+            Passwords are stored as PBKDF2 hashes — never in plain text.
+            Use a strong, unique password. Your credentials were initially issued by
+            NAKOA Technologies and should be changed immediately after first login.
           </p>
         </div>
       </div>
@@ -290,17 +280,23 @@ function togglePw(id, btn) {
   inp.type = inp.type === 'password' ? 'text' : 'password';
   icon.className = inp.type === 'text' ? 'bi bi-eye-slash' : 'bi bi-eye';
 }
-// Auto-switch to IP tab if that's what was just saved
-{% set tab_target = 'ips' if request.form.get('action') in ['add_ip','bulk_add_ips','remove_ip'] else ('mail' if request.form.get('action') == 'save_settings' else '') %}
-{% if tab_target %}
+function checkStrength(pw) {
+  const bar = document.getElementById('pwStrength');
+  const hint = document.getElementById('pwHint');
+  if (!pw) { bar.className = 'pw-strength'; hint.textContent = 'Minimum 8 characters'; return; }
+  const score = [pw.length >= 8, /[A-Z]/.test(pw), /\d/.test(pw), /[^a-zA-Z0-9]/.test(pw)].filter(Boolean).length;
+  bar.className = 'pw-strength ' + ['','weak','fair','good','strong'][score];
+  hint.textContent = 'Strength: ' + ['','Weak','Fair','Good','Strong'][score];
+}
+// Auto-switch to the correct tab after a POST
+{% set action = request.form.get('action','') %}
+{% if action in ['add_ip','bulk_add_ips','remove_ip'] %}
 document.addEventListener('DOMContentLoaded', () => {
-  const tabs = document.querySelectorAll('.ts-tab');
-  tabs.forEach(t => t.classList.remove('active'));
-  const tab = '{{ tab_target }}';
-  document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('d-none'));
-  document.getElementById('tab-' + tab).classList.remove('d-none');
-  const tabIdx = {'mail':0,'ips':1,'security':2}[tab] || 0;
-  tabs[tabIdx].classList.add('active');
+  document.querySelectorAll('.ts-tab')[1].click();
+});
+{% elif action == 'change_password' %}
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.ts-tab')[2].click();
 });
 {% endif %}
 </script>

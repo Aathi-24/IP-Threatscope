@@ -1,0 +1,168 @@
+{% extends "base_admin.html" %}
+{% block title %}Email Configuration – {{ target_email }}{% endblock %}
+{% block page_heading %}Email Configuration{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('admin_email_config') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> All Users
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header">
+        <i class="bi bi-envelope-gear" style="color:var(--accent);"></i>
+        Email Settings for
+        <span class="monospace fw-600" style="margin-left:6px;">{{ target_email }}</span>
+        {% if target_role == 'admin' %}
+        <span class="badge badge-warning ms-2"><i class="bi bi-shield-lock"></i> Admin</span>
+        {% else %}
+        <span class="badge badge-secondary ms-2">User</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label">Sender Email Address</label>
+              <input type="email" name="mail_sender" class="form-control"
+                     value="{{ s.mail_sender }}" placeholder="alerts@yourcompany.com">
+              <div class="form-text">The email address reports are sent <em>from</em> for this user.</div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label">Recipient Email Address</label>
+              <input type="email" name="mail_recipient" class="form-control"
+                     value="{{ s.mail_recipient }}" placeholder="this.user@theircompany.com">
+              <div class="form-text">Where this user's blocked-IP reports are delivered.</div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">SMTP Auth Password</label>
+            <div class="input-group">
+              <input type="password" name="mail_smtp_password" id="smtpPw" class="form-control"
+                     value="{{ s.mail_smtp_password }}"
+                     placeholder="SMTP authentication password">
+              <button type="button" class="btn btn-outline-secondary btn-sm"
+                      onclick="togglePw('smtpPw',this)"
+                      style="border-radius:0 8px 8px 0;">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div class="form-text">The password used to authenticate with this user's SMTP server.</div>
+          </div>
+
+          <hr class="ts-divider">
+          <div class="section-title" style="margin-bottom:14px;">
+            <i class="bi bi-server"></i> SMTP Server Settings
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-sm-5">
+              <label class="form-label">SMTP Server</label>
+              <input type="text" name="smtp_server" class="form-control"
+                     value="{{ s.smtp_server }}"
+                     placeholder="smtp.office365.com">
+              <div class="form-text">e.g. smtp.office365.com, mail.company.com</div>
+            </div>
+            <div class="col-sm-3">
+              <label class="form-label">Port</label>
+              <input type="number" name="smtp_port" class="form-control"
+                     value="{{ s.smtp_port }}" min="1" max="65535">
+              <div class="form-text">587 (TLS) · 465 (SSL) · 25</div>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label">Security / Certificate</label>
+              <select name="smtp_security" class="form-select">
+                {% for opt, label in [('TLS','TLS (STARTTLS)'),('SSL','SSL / TLS'),('AUTO','AUTO'),('NONE','None (Plain)')] %}
+                <option value="{{ opt }}" {% if s.smtp_security == opt %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text">Encryption mode for SMTP connection.</div>
+            </div>
+          </div>
+
+          <div class="alert alert-info" style="font-size:.8rem;margin-bottom:20px;">
+            <i class="bi bi-info-circle"></i>
+            <span>
+              <strong>TLS (STARTTLS)</strong> — port 587, upgrades plain connection to encrypted.<br>
+              <strong>SSL / TLS</strong> — port 465, encrypted from the start.<br>
+              <strong>AUTO</strong> — tries TLS first, falls back to SSL.<br>
+              <strong>None</strong> — no encryption (not recommended except for internal relays).
+            </span>
+          </div>
+
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save"></i> Save Email Configuration
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-activity" style="color:var(--accent);"></i> Status</div>
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          {% if mail_configured %}
+          <div class="stat-icon green" style="width:42px;height:42px;font-size:1.2rem;"><i class="bi bi-check-circle"></i></div>
+          <div>
+            <div style="font-weight:700;font-size:.92rem;color:var(--text-primary);">Configured</div>
+            <div style="font-size:.78rem;color:var(--text-muted);">Scheduled reports for this user will be emailed.</div>
+          </div>
+          {% else %}
+          <div class="stat-icon amber" style="width:42px;height:42px;font-size:1.2rem;"><i class="bi bi-exclamation-triangle"></i></div>
+          <div>
+            <div style="font-weight:700;font-size:.92rem;color:var(--text-primary);">Not configured</div>
+            <div style="font-size:.78rem;color:var(--text-muted);">No report emails will be sent for this user yet.</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="background:#f8fafc;border-color:var(--border);">
+      <div class="card-body" style="padding:16px;">
+        <div style="font-size:.8rem;font-weight:700;color:var(--text-secondary);margin-bottom:10px;">
+          <i class="bi bi-question-circle me-1"></i> SMTP Quick Reference
+        </div>
+        <table style="width:100%;font-size:.78rem;color:var(--text-secondary);border-collapse:collapse;">
+          <thead><tr style="border-bottom:1px solid var(--border);">
+            <th style="padding:4px 0;font-weight:700;">Provider</th>
+            <th style="padding:4px 0;font-weight:700;">Server</th>
+            <th style="padding:4px 0;font-weight:700;">Port</th>
+            <th style="padding:4px 0;font-weight:700;">Mode</th>
+          </tr></thead>
+          <tbody>
+            {% for row in [('Office 365','smtp.office365.com','587','TLS'),
+                           ('Google WS','smtp.gmail.com','587','TLS'),
+                           ('Yahoo','smtp.mail.yahoo.com','587','TLS'),
+                           ('Outlook','smtp-mail.outlook.com','587','TLS'),
+                           ('Generic SSL','your-server','465','SSL')] %}
+            <tr style="border-bottom:1px solid #f1f5f9;">
+              {% for cell in row %}
+              <td style="padding:5px 0;">{{ cell }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  const icon = btn.querySelector('i');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  icon.className = inp.type === 'text' ? 'bi bi-eye-slash' : 'bi bi-eye';
+}
+</script>
+{% endblock %}

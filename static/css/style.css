@@ -27,10 +27,12 @@
   --accent-light: #eff6ff;
   --success: #22c55e;
   --success-light: #f0fdf4;
+  --success-icon: #15803d;
   --danger: #ef4444;
   --danger-light: #fef2f2;
   --warning: #f59e0b;
   --warning-light: #fffbeb;
+  --warning-icon: #92400e;
   --info: #06b6d4;
   --text-primary: #1e293b;
   --text-secondary: #475569;
@@ -412,9 +414,9 @@ body {
   flex-shrink: 0;
 }
 .stat-icon.blue { background: #eff6ff; color: var(--accent); }
-.stat-icon.green { background: #f0fdf4; color: var(--success); }
+.stat-icon.green { background: #dcfce7; color: var(--success-icon); }
 .stat-icon.red { background: #fef2f2; color: var(--danger); }
-.stat-icon.amber { background: #fffbeb; color: var(--warning); }
+.stat-icon.amber { background: #fef3c7; color: var(--warning-icon); }
 .stat-icon.purple { background: #faf5ff; color: #9333ea; }
 .stat-info { flex: 1; min-width: 0; }
 .stat-value {
@@ -457,7 +459,7 @@ body {
   font-size: 1.4rem;
   flex-shrink: 0;
 }
-.verdict-banner.safe .verdict-icon { background: #dcfce7; color: var(--success); }
+.verdict-banner.safe .verdict-icon { background: #dcfce7; color: var(--success-icon); }
 .verdict-banner.suspicious .verdict-icon { background: #fee2e2; color: var(--danger); }
 .verdict-banner.safe .verdict-title { color: #15803d; }
 .verdict-banner.suspicious .verdict-title { color: #b91c1c; }
@@ -707,12 +709,12 @@ div.dataTables_wrapper div.dataTables_info { padding-top: 8px; font-size: 0.78re
   font-size: 0.75rem;
   font-weight: 600;
 }
-.badge-success { background: #dcfce7; color: #15803d; }
-.badge-danger { background: #fee2e2; color: #b91c1c; }
-.badge-warning { background: #fef3c7; color: #92400e; }
-.badge-info { background: #e0f2fe; color: #0369a1; }
-.badge-secondary { background: #f1f5f9; color: var(--text-secondary); }
-.badge-primary { background: var(--accent-light); color: var(--accent-dark); }
+.badge-success { background: #17ac4a; color: #0ae85c; font-weight: 700; }
+.badge-danger { background: #e01010; color: #b91c1c; font-weight: 700; }
+.badge-warning { background: #f3c303; color: #f56206; font-weight: 700; }
+.badge-info { background: #0195f8; color: #0369a1; font-weight: 700; }
+.badge-secondary { background: #0966df; color: #0453d3; font-weight: 700; }
+.badge-primary { background: var(--accent-light); color: var(--accent-dark); font-weight: 700; }
 /* Bootstrap compatibility */
 .bg-success { background: var(--success) !important; }
 .bg-danger { background: var(--danger) !important; }

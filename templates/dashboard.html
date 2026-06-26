@@ -171,7 +171,7 @@
     <i class="bi bi-send" style="color:var(--accent);"></i>
     Automated Email Reports
     <span class="ms-auto">
-      {% if user and user.settings and user.settings.mail_sender %}
+      {% if mail_configured %}
       <span class="scheduler-pill"><span class="scheduler-dot"></span> Configured</span>
       {% else %}
       <span class="scheduler-pill inactive"><span class="scheduler-dot"></span> Not configured</span>
@@ -180,21 +180,23 @@
   </div>
   <div class="card-body">
     <div class="row g-3">
-      <div class="col-sm-6 col-lg-3">
-        <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:4px;">Sender</div>
-        <div style="font-size:.875rem;font-weight:500;">{{ user.settings.mail_sender or '—' }}</div>
+      <div class="col-sm-6 col-lg-4">
+        <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:4px;">Status</div>
+        <div style="font-size:.875rem;font-weight:500;">
+          {% if mail_configured %}
+          Reports will be emailed on schedule
+          {% else %}
+          Email delivery is managed by your administrator
+          {% endif %}
+        </div>
       </div>
-      <div class="col-sm-6 col-lg-3">
-        <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:4px;">Recipient</div>
-        <div style="font-size:.875rem;font-weight:500;">{{ user.settings.mail_recipient or '—' }}</div>
-      </div>
-      <div class="col-sm-6 col-lg-3">
+      <div class="col-sm-6 col-lg-4">
         <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:.5px;margin-bottom:4px;">Interval</div>
         <div style="font-size:.875rem;font-weight:500;">Every {{ user.settings.check_interval_minutes }} min</div>
       </div>
-      <div class="col-sm-6 col-lg-3">
+      <div class="col-sm-6 col-lg-4">
         <a href="{{ url_for('settings') }}" class="btn btn-outline-secondary w-100" style="margin-top:4px;">
-          <i class="bi bi-gear"></i> Configure
+          <i class="bi bi-gear"></i> Scheduler Settings
         </a>
       </div>
     </div>

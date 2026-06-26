@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IP Threatscope — Enterprise IP Threat Intelligence</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --dark: #0a0f1e;
+      --dark2: #0f172a;
+      --dark3: #1e293b;
+      --accent: #3b82f6;
+      --accent2: #6366f1;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: rgba(255,255,255,0.08);
+      --card: rgba(255,255,255,0.04);
+      --card-hover: rgba(255,255,255,0.07);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--dark); color: var(--text); line-height: 1.65; }
+
+    /* ── Navbar ── */
+    .ts-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      height: 68px;
+      display: flex; align-items: center;
+      padding: 0 5%;
+      background: rgba(10,15,30,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.3s;
+    }
+    .ts-nav .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; flex: 1;
+    }
+    .ts-nav .brand-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: var(--accent); display: flex;
+      align-items: center; justify-content: center;
+      font-size: 1.1rem; color: #fff; flex-shrink: 0;
+    }
+    .ts-nav .brand-name { font-size: 1.05rem; font-weight: 800; color: #fff; }
+    .ts-nav .brand-by { font-size: 0.68rem; color: var(--muted); margin-top: 1px; }
+    .nav-signin { padding: 8px 22px; font-size: 0.875rem; font-weight: 600;
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      text-decoration: none; transition: all 0.2s; }
+    .nav-signin:hover { background: #2563eb; color: #fff; box-shadow: 0 4px 16px rgba(59,130,246,0.4); }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100dvh; padding: 100px 5% 80px;
+      display: flex; align-items: center;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,130,246,0.18) 0%, transparent 65%),
+                  radial-gradient(ellipse 40% 40% at 85% 30%, rgba(99,102,241,0.12) 0%, transparent 60%),
+                  var(--dark);
+      position: relative; overflow: hidden;
+    }
+    /* Grid pattern overlay */
+    .hero::before {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 999px; padding: 6px 16px;
+      font-size: 0.78rem; font-weight: 700; color: #93c5fd;
+      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      font-weight: 900; letter-spacing: -1.5px;
+      line-height: 1.1; color: #fff; margin-bottom: 20px;
+    }
+    .hero h1 .accent { color: var(--accent); }
+    .hero .subtitle {
+      font-size: clamp(1rem, 2vw, 1.15rem);
+      color: var(--muted); max-width: 580px;
+      line-height: 1.75; margin-bottom: 36px;
+    }
+    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 48px; }
+    .btn-hero-primary {
+      padding: 13px 28px; font-weight: 700; font-size: 0.95rem;
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 10px; text-decoration: none; display: inline-flex;
+      align-items: center; gap: 8px;
+      transition: all 0.2s; box-shadow: 0 4px 20px rgba(59,130,246,0.35);
+    }
+    .btn-hero-primary:hover { background: #2563eb; color: #fff; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(59,130,246,0.45); }
+    .btn-hero-outline {
+      padding: 13px 28px; font-weight: 600; font-size: 0.95rem;
+      background: transparent; color: var(--text);
+      border: 1.5px solid rgba(255,255,255,0.2); border-radius: 10px;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-hero-outline:hover { border-color: rgba(255,255,255,0.4); color: #fff; background: rgba(255,255,255,0.05); }
+
+    /* Hero stats */
+    .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .hero-stat { display: flex; flex-direction: column; }
+    .hero-stat-num { font-size: 1.75rem; font-weight: 900; color: #fff; letter-spacing: -1px; }
+    .hero-stat-label { font-size: 0.75rem; color: var(--muted); font-weight: 500; }
+    .hero-stat-div { width: 1px; background: var(--border); align-self: stretch; }
+
+    /* Hero visual card */
+    .hero-visual {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+    }
+    .hero-visual .scan-line {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: 8px;
+      background: rgba(255,255,255,0.03); margin-bottom: 6px; font-size: 0.82rem;
+    }
+    .scan-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .scan-dot.red { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+    .scan-dot.green { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .scan-dot.amber { background: #f59e0b; }
+    .scan-ip { font-family: monospace; color: #e2e8f0; flex: 1; }
+    .scan-vendor { font-size: 0.72rem; color: var(--muted); flex: 1; }
+    .scan-tag {
+      font-size: 0.68rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .scan-tag.blocked { background: rgba(239,68,68,0.15); color: #fca5a5; }
+    .scan-tag.clean { background: rgba(34,197,94,0.12); color: #86efac; }
+    .scan-tag.medium { background: rgba(245,158,11,0.12); color: #fcd34d; }
+    .visual-header {
+      font-size: 0.72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.7px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 12px;
+    }
+    .visual-summary {
+      display: flex; gap: 8px; margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .vsumm { flex: 1; text-align: center; }
+    .vsumm-n { font-size: 1.2rem; font-weight: 800; }
+    .vsumm-l { font-size: 0.65rem; color: var(--muted); }
+
+    /* ── Section base ── */
+    section { padding: 88px 5%; }
+    .section-eyebrow {
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800;
+      color: #fff; letter-spacing: -0.8px; margin-bottom: 14px;
+    }
+    .section-sub { color: var(--muted); font-size: 1rem; max-width: 580px; margin-bottom: 48px; }
+
+    /* ── Feature cards ── */
+    .feature-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px;
+      transition: all 0.25s; height: 100%;
+    }
+    .feature-card:hover { background: var(--card-hover); border-color: rgba(59,130,246,0.35); transform: translateY(-3px); }
+    .feature-icon {
+      width: 46px; height: 46px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; margin-bottom: 16px;
+    }
+    .fi-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .fi-green { background: rgba(34,197,94,0.12); color: #4ade80; }
+    .fi-purple { background: rgba(139,92,246,0.12); color: #a78bfa; }
+    .fi-amber { background: rgba(245,158,11,0.12); color: #fbbf24; }
+    .fi-red { background: rgba(239,68,68,0.12); color: #f87171; }
+    .fi-cyan { background: rgba(6,182,212,0.12); color: #22d3ee; }
+    .feature-card h5 { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .feature-card p { font-size: 0.84rem; color: var(--muted); line-height: 1.7; margin: 0; }
+
+    /* ── How it works ── */
+    .step-card {
+      display: flex; gap: 18px; align-items: flex-start;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px; margin-bottom: 16px;
+      transition: all 0.2s;
+    }
+    .step-card:hover { border-color: rgba(59,130,246,0.3); }
+    .step-num {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--accent); color: #fff; font-size: 1rem;
+      font-weight: 800; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0;
+    }
+    .step-content h5 { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .step-content p { font-size: 0.84rem; color: var(--muted); margin: 0; }
+
+    /* ── Vendor logos strip ── */
+    .vendor-strip {
+      background: var(--dark2); padding: 40px 5%;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .vendor-strip-label { text-align: center; font-size: 0.78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 24px; }
+    .vendor-pills { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .vendor-pill {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 16px; font-size: 0.8rem;
+      font-weight: 600; color: var(--muted); transition: all 0.2s;
+    }
+    .vendor-pill:hover { border-color: rgba(59,130,246,0.4); color: #93c5fd; }
+
+    /* ── Trust / enterprise section ── */
+    .trust-section { background: var(--dark2); }
+    .trust-item { display: flex; align-items: flex-start; gap: 14px; }
+    .trust-icon { font-size: 1.5rem; color: var(--accent); flex-shrink: 0; margin-top: 2px; }
+    .trust-item h6 { font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 3px; }
+    .trust-item p { font-size: 0.82rem; color: var(--muted); margin: 0; }
+
+    /* ── Access CTA ── */
+    .cta-section {
+      text-align: center;
+      background: radial-gradient(ellipse 70% 80% at 50% 50%, rgba(59,130,246,0.12) 0%, transparent 70%), var(--dark);
+    }
+    .cta-section h2 { font-size: clamp(1.6rem,3vw,2.4rem); font-weight: 800; color: #fff; margin-bottom: 12px; }
+    .cta-section p { color: var(--muted); max-width: 520px; margin: 0 auto 32px; }
+    .cta-steps {
+      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 40px;
+    }
+    .cta-step {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 18px; font-size: 0.84rem; color: #e2e8f0;
+    }
+    .cta-step i { color: var(--accent); }
+
+    /* ── Contact section ── */
+    .contact-section {
+      background: var(--dark2);
+      border-top: 1px solid var(--border);
+    }
+    .contact-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 28px; height: 100%;
+    }
+    .contact-card h5 { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 16px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .contact-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+    .contact-row:last-child { margin-bottom: 0; }
+    .contact-row i { color: var(--accent); font-size: 1rem; margin-top: 2px; flex-shrink: 0; }
+    .contact-row .clabel { font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.7px; color: var(--muted); margin-bottom: 2px; }
+    .contact-row a { color: #93c5fd; text-decoration: none; font-size: 0.875rem; font-weight: 500; }
+    .contact-row a:hover { text-decoration: underline; }
+    .contact-row span { color: #e2e8f0; font-size: 0.875rem; }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--dark); border-top: 1px solid var(--border);
+      padding: 24px 5%; text-align: center;
+    }
+    footer p { font-size: 0.78rem; color: var(--muted); margin: 0; }
+    footer a { color: #64748b; text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .hero { padding: 90px 5% 60px; }
+      .hero-stats { gap: 20px; }
+      .hero-stat-div { display: none; }
+      section { padding: 60px 5%; }
+      .hero-visual { display: none; }
+      .cta-steps { flex-direction: column; align-items: center; }
+    }
+    @media (max-width: 480px) {
+      .hero-ctas { flex-direction: column; }
+      .btn-hero-primary, .btn-hero-outline { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ────────────────────────────────────────────────────────────── -->
+<nav class="ts-nav">
+  <a class="nav-brand" href="#">
+    <div class="brand-icon"><i class="bi bi-shield-check"></i></div>
+    <div>
+      <div class="brand-name">IP Threatscope</div>
+      <div class="brand-by">by NAKOA Technologies</div>
+    </div>
+  </a>
+  <a href="{{ url_for('login') }}" class="nav-signin">Sign In</a>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container-fluid px-0">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <div class="hero-badge">
+          <i class="bi bi-shield-fill-check"></i>
+          Enterprise Threat Intelligence Platform
+        </div>
+        <h1>
+          Know Every Threat.<br>
+          <span class="accent">Instantly.</span>
+        </h1>
+        <p class="subtitle">
+          IP Threatscope consolidates intelligence from 70+ global security vendors —
+          AbuseIPDB, VirusTotal, GreyNoise, Shodan, and more — into a single, powerful
+          platform built for enterprise security and SOC teams.
+        </p>
+        <div class="hero-ctas">
+          <a href="#contact" class="btn-hero-primary">
+            <i class="bi bi-envelope-fill"></i> Request Access
+          </a>
+          <a href="{{ url_for('login') }}" class="btn-hero-outline">
+            <i class="bi bi-box-arrow-in-right"></i> Sign In
+          </a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <span class="hero-stat-num">70+</span>
+            <span class="hero-stat-label">Security Vendors</span>
+          </div>
+          <div class="hero-stat-div"></div>
+          <div class="hero-stat">
+            <span class="hero-stat-num">Real-time</span>
+            <span class="hero-stat-label">Threat Analysis</span>
+          </div>
+          <div class="hero-stat-div"></div>
+          <div class="hero-stat">
+            <span class="hero-stat-num">Any SMTP</span>
+            <span class="hero-stat-label">Email Delivery</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6 d-none d-lg-block">
+        <div class="hero-visual">
+          <div class="visual-header">
+            <i class="bi bi-circle-fill me-1" style="color:#22c55e;font-size:.5rem;"></i>
+            Live Threat Scan — 203.0.113.45
+          </div>
+          <div class="scan-line">
+            <div class="scan-dot red"></div>
+            <span class="scan-ip">203.0.113.45</span>
+            <span class="scan-vendor">AbuseIPDB</span>
+            <span class="scan-tag blocked">Blocked</span>
+          </div>
+          <div class="scan-line">
+            <div class="scan-dot red"></div>
+            <span class="scan-ip">203.0.113.45</span>
+            <span class="scan-vendor">VirusTotal / Fortinet</span>
+            <span class="scan-tag blocked">Blocked</span>
+          </div>
+          <div class="scan-line">
+            <div class="scan-dot amber"></div>
+            <span class="scan-ip">203.0.113.45</span>
+            <span class="scan-vendor">GreyNoise</span>
+            <span class="scan-tag medium">Scanner</span>
+          </div>
+          <div class="scan-line">
+            <div class="scan-dot green"></div>
+            <span class="scan-ip">203.0.113.45</span>
+            <span class="scan-vendor">Shodan InternetDB</span>
+            <span class="scan-tag clean">Clean</span>
+          </div>
+          <div class="scan-line">
+            <div class="scan-dot red"></div>
+            <span class="scan-ip">203.0.113.45</span>
+            <span class="scan-vendor">VirusTotal / Sophos</span>
+            <span class="scan-tag blocked">Blocked</span>
+          </div>
+          <div class="visual-summary">
+            <div class="vsumm"><div class="vsumm-n" style="color:#ef4444;">23</div><div class="vsumm-l">Blocked</div></div>
+            <div class="vsumm"><div class="vsumm-n" style="color:#22c55e;">47</div><div class="vsumm-l">Safe</div></div>
+            <div class="vsumm"><div class="vsumm-n" style="color:#f59e0b;">Critical</div><div class="vsumm-l">Risk Level</div></div>
+            <div class="vsumm"><div class="vsumm-n">70</div><div class="vsumm-l">Vendors</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Vendor strip ────────────────────────────────────────────────────── -->
+<div class="vendor-strip">
+  <div class="vendor-strip-label">Integrated threat intelligence sources</div>
+  <div class="vendor-pills">
+    {% for v in ['AbuseIPDB','VirusTotal','GreyNoise','Shodan','Fortinet','Sophos','Kaspersky',
+                 'CrowdStrike','AlienVault','Bitdefender','ESET','Avast','McAfee','Trend Micro',
+                 'Palo Alto','Check Point','IPQualityScore','CINS Army','AlphaSOC','Webroot'] %}
+    <div class="vendor-pill">{{ v }}</div>
+    {% endfor %}
+    <div class="vendor-pill" style="color:#60a5fa;border-color:rgba(59,130,246,0.3);">+ 50 more</div>
+  </div>
+</div>
+
+<!-- ── Features ───────────────────────────────────────────────────────── -->
+<section id="features">
+  <div class="container-fluid px-0">
+    <div class="section-eyebrow">Core Capabilities</div>
+    <h2 class="section-title">Everything your security team needs</h2>
+    <p class="section-sub">
+      From single-IP lookups to scheduled bulk scans with automated email reports —
+      IP Threatscope covers the full threat-intelligence workflow.
+    </p>
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon fi-blue"><i class="bi bi-building"></i></div>
+          <h5>Multi-Vendor Intelligence</h5>
+          <p>Query 70+ security databases simultaneously and get a unified view of every vendor's verdict for any IP address — in a single click.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon fi-green"><i class="bi bi-send-check"></i></div>
+          <h5>Automated Email Reports</h5>
+          <p>Configure your check interval and receive detailed blocked-IP reports delivered directly to any mailbox — fully automatic, on your schedule.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon fi-purple"><i class="bi bi-list-check"></i></div>
+          <h5>Batch IP Scanning</h5>
+          <p>Manage and scan entire IP lists. Navigate per-IP results individually with full vendor-by-vendor breakdown and threat classification.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon fi-amber"><i class="bi bi-diagram-3"></i></div>
+          <h5>Deep IP Intelligence</h5>
+          <p>Beyond reputation scores — get WHOIS data, ASN information, ISP details, network classification, and full abuse history per IP.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon fi-red"><i class="bi bi-shield-exclamation"></i></div>
+          <h5>Threat Level Classification</h5>
+          <p>Every scan produces a risk rating — Clean, Low, Medium, High, or Critical — based on the consensus across all queried vendors.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon fi-cyan"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+          <h5>CSV Export &amp; Auditing</h5>
+          <p>Export full vendor results or filtered blocked-only reports as CSV files for compliance documentation, auditing, and SIEM integration.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ───────────────────────────────────────────────────── -->
+<section id="how-it-works" style="background:rgba(255,255,255,0.02);">
+  <div class="container-fluid px-0">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-5">
+        <div class="section-eyebrow">Getting Started</div>
+        <h2 class="section-title">Three steps to full IP visibility</h2>
+        <p class="section-sub" style="margin-bottom:0;">
+          IP Threatscope is a managed, enterprise-grade service. Access is provisioned
+          by NAKOA Technologies to ensure data isolation and security for every client.
+        </p>
+      </div>
+      <div class="col-lg-7">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h5>Contact NAKOA Technologies</h5>
+            <p>Reach out via email or phone to request access. Our team will walk you through the onboarding process and discuss your organisation's requirements.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h5>Receive Your Credentials Securely</h5>
+            <p>After verification and account setup, you'll receive your login credentials via email. You can immediately change your password after your first sign-in.</p>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h5>Start Monitoring Immediately</h5>
+            <p>Log in, configure your IP list, set up automated email reports with your own SMTP server, and get real-time threat intelligence straight away.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Enterprise trust ───────────────────────────────────────────────── -->
+<section class="trust-section">
+  <div class="container-fluid px-0">
+    <div class="section-eyebrow">Enterprise Ready</div>
+    <h2 class="section-title">Built for professional security teams</h2>
+    <p class="section-sub">
+      IP Threatscope is designed from the ground up for enterprise environments —
+      secure, flexible, and SMTP-agnostic.
+    </p>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4">
+        <div class="trust-item">
+          <i class="bi bi-shield-lock trust-icon"></i>
+          <div>
+            <h6>Isolated Per-Client Data</h6>
+            <p>Each account operates in complete isolation. Your IP lists, settings, and reports are never shared with other clients.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="trust-item">
+          <i class="bi bi-envelope-check trust-icon"></i>
+          <div>
+            <h6>SMTP-Agnostic Email Delivery</h6>
+            <p>Use any mail server — Microsoft 365, Exchange, Google Workspace, Postfix, or any custom SMTP — with SSL, TLS, or STARTTLS.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="trust-item">
+          <i class="bi bi-key trust-icon"></i>
+          <div>
+            <h6>Hashed Password Storage</h6>
+            <p>All account passwords are hashed using industry-standard PBKDF2 before storage. Plain-text passwords are never stored or transmitted.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="trust-item">
+          <i class="bi bi-clock-history trust-icon"></i>
+          <div>
+            <h6>Configurable Scheduling</h6>
+            <p>Set your own check interval — from minutes to hours. The built-in scheduler runs your IP list automatically and emails the results.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="trust-item">
+          <i class="bi bi-bar-chart trust-icon"></i>
+          <div>
+            <h6>Actionable Intelligence</h6>
+            <p>Risk-level badges (Clean / Low / Medium / High / Critical), detection progress bars, and per-vendor drill-down make results immediately actionable.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="trust-item">
+          <i class="bi bi-phone trust-icon"></i>
+          <div>
+            <h6>Responsive on Any Device</h6>
+            <p>Full-featured across desktop, tablet, and mobile. Secure sign-in from the field, full analysis from the office.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Access CTA ─────────────────────────────────────────────────────── -->
+<section class="cta-section">
+  <div class="container-fluid px-0">
+    <h2>Ready to protect your network?</h2>
+    <p>Contact NAKOA Technologies to request access. Our team will provision your account and have you scanning IPs within 24 hours.</p>
+    <div class="cta-steps">
+      <div class="cta-step"><i class="bi bi-telephone-fill"></i> Call us</div>
+      <div class="cta-step"><i class="bi bi-envelope-fill"></i> Email us</div>
+      <div class="cta-step"><i class="bi bi-person-check-fill"></i> Get provisioned</div>
+      <div class="cta-step"><i class="bi bi-shield-check"></i> Start scanning</div>
+    </div>
+    <a href="#contact" class="btn-hero-primary" style="display:inline-flex;">
+      <i class="bi bi-envelope-fill"></i> Contact Us for Access
+    </a>
+  </div>
+</section>
+
+<!-- ── Contact section ────────────────────────────────────────────────── -->
+<section id="contact" class="contact-section">
+  <div class="container-fluid px-0">
+    <div class="section-eyebrow">Get In Touch</div>
+    <h2 class="section-title">NAKOA Technologies</h2>
+    <p style="color:var(--muted);max-width:640px;margin-bottom:40px;font-size:.95rem;line-height:1.8;">
+      Our mission is to empower businesses with innovative IT solutions that drive growth, security, and efficiency.
+      Our vision is to be a leader in IT services, enabling businesses of all sizes to harness technology
+      for sustained success and market leadership.
+    </p>
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-4">
+        <div class="contact-card">
+          <h5><i class="bi bi-headset me-2" style="color:var(--accent);"></i>Support &amp; Sales</h5>
+          <div class="contact-row">
+            <i class="bi bi-envelope-fill"></i>
+            <div>
+              <div class="clabel">Business Enquiries</div>
+              <a href="mailto:info@nakoatech.com">info@nakoatech.com</a>
+            </div>
+          </div>
+          <div class="contact-row">
+            <i class="bi bi-telephone-fill"></i>
+            <div>
+              <div class="clabel">Reach Out</div>
+              <a href="tel:+919080995043">+91 90809 95043</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="contact-card">
+          <h5><i class="bi bi-geo-alt-fill me-2" style="color:var(--accent);"></i>Visit Us</h5>
+          <div class="contact-row">
+            <i class="bi bi-building"></i>
+            <div>
+              <div class="clabel">Office Address</div>
+              <span>2/5, Vilankurichi Road,<br>
+              Kumutham Nagar, Cheran Managar,<br>
+              Coimbatore, India — 641035</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-12 col-lg-4">
+        <div class="contact-card" style="background:rgba(59,130,246,0.07);border-color:rgba(59,130,246,0.25);">
+          <h5><i class="bi bi-box-arrow-in-right me-2" style="color:var(--accent);"></i>Existing Client?</h5>
+          <p style="font-size:.84rem;color:var(--muted);margin-bottom:20px;line-height:1.7;">
+            If you already have credentials provided by NAKOA Technologies,
+            sign in directly to access your IP Threatscope dashboard.
+          </p>
+          <a href="{{ url_for('login') }}" class="btn-hero-primary" style="display:inline-flex;width:100%;justify-content:center;">
+            <i class="bi bi-shield-check"></i> Sign In to Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────── -->
+<footer>
+  <p>
+    &copy; 2025 <a href="#" style="color:var(--accent);">NAKOA Technologies</a>.
+    All rights reserved.&nbsp;&nbsp;|&nbsp;&nbsp;IP Threatscope — Enterprise Threat Intelligence Platform
+  </p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Animate hero stats counter
+const nums = document.querySelectorAll('.hero-stat-num');
+</script>
+</body>
+</html>

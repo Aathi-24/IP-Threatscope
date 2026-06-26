@@ -21,7 +21,7 @@ from io import StringIO
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from services.mailer import send_blocked_report_email, send_missed_check_alert
+from services.mailer import send_blocked_report_email, send_missed_check_alert, mail_is_configured
 
 _scheduler = None
 _lock = threading.Lock()
@@ -81,7 +81,7 @@ def _run_check_for_user(email, user, process_single_ip, skip_rate_limit=False):
 
     run_time = datetime.now().strftime("%Y-%m-%d %H:%M")
     ips = user.get("ips", [])
-    settings = user.get("settings", {})
+    mail_settings = user.get("mail_settings", {})
 
     if not ips:
         return  # nothing to scan
@@ -132,7 +132,7 @@ def _run_check_for_user(email, user, process_single_ip, skip_rate_limit=False):
         "blocked_ips": blocked_ip_count,
     }
 
-    send_blocked_report_email(settings, buf.getvalue(), filename, summary)
+    send_blocked_report_email(mail_settings, buf.getvalue(), filename, summary)
 
     # Update scheduler state
     state = get_user_scheduler_state(email)
@@ -153,6 +153,7 @@ def _master_tick(process_single_ip):
     for email, user in all_users().items():
         try:
             settings = user.get("settings", {})
+            mail_settings = user.get("mail_settings", {})
             interval = int(settings.get("check_interval_minutes", 60))
             grace    = int(settings.get("missed_check_grace_minutes", 10))
             state    = user.get("scheduler_state", {})
@@ -160,8 +161,9 @@ def _master_tick(process_single_ip):
 
             # ---- Due check ----
             if last_iso is None:
-                # Never run before - run now if the user has IPs and settings
-                if user.get("ips") and settings.get("mail_app_password", "").strip():
+                # Never run before - run now if the user has IPs and this
+                # user's own email delivery is configured
+                if user.get("ips") and mail_is_configured(mail_settings):
                     _run_check_for_user(email, user, process_single_ip)
             else:
                 try:
@@ -185,7 +187,7 @@ def _master_tick(process_single_ip):
                 # Also check rate limit: no email within last 60 minutes
                 if last_alert != last_iso and not _is_email_rate_limited(email, user):
                     send_missed_check_alert(
-                        settings,
+                        mail_settings,
                         state.get("last_success_at") or "never",
                         round(minutes_since),
                     )

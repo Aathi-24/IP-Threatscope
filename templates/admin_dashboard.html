@@ -1,0 +1,132 @@
+{% extends "base_admin.html" %}
+{% block title %}Admin Overview – IP Threatscope{% endblock %}
+{% block page_heading %}Admin Overview{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-primary">
+    <i class="bi bi-person-plus"></i> Manage Users
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Hero ─────────────────────────────────────────────────────── -->
+<div class="card mb-4" style="background:linear-gradient(135deg,#1e3a5f 0%,#0f172a 100%);border:none;color:#fff;">
+  <div class="card-body" style="padding:28px 32px;">
+    <div class="row align-items-center g-3">
+      <div class="col-lg-8">
+        <h1 style="font-size:1.35rem;font-weight:800;color:#fff;margin-bottom:4px;">
+          <i class="bi bi-shield-lock-fill me-2" style="color:#f59e0b;"></i>
+          NAKOA Technologies Admin Console
+        </h1>
+        <p style="color:#94a3b8;font-size:.85rem;margin-bottom:0;">
+          Manage user accounts, credentials, and email delivery for IP Threatscope.
+        </p>
+      </div>
+      <div class="col-lg-4 text-lg-end text-center d-none d-lg-block">
+        <i class="bi bi-shield-shaded" style="font-size:5rem;color:rgba(245,158,11,0.35);"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Stat cards ───────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="bi bi-people"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ total_users }}</div>
+        <div class="stat-label">Regular Users</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon amber"><i class="bi bi-shield-lock"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ total_admins }}</div>
+        <div class="stat-label">Admin Accounts</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <a href="{{ url_for('admin_email_config') }}" style="text-decoration:none;color:inherit;">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-envelope-check"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ total_mail_configured }} / {{ users | length }}</div>
+        <div class="stat-label">Email Configured</div>
+      </div>
+    </div>
+    </a>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card">
+      <div class="stat-icon purple"><i class="bi bi-globe2"></i></div>
+      <div class="stat-info">
+        <div class="stat-value">{{ users | sum(attribute='ip_count') }}</div>
+        <div class="stat-label">IPs Tracked (All Users)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Users table ──────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-header" style="color:var(--text-primary);">
+    <i class="bi bi-people" style="color:var(--accent);"></i>
+    All Accounts
+    <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-outline-secondary ms-auto">
+      <i class="bi bi-gear"></i> Manage
+    </a>
+  </div>
+  {% if users %}
+  <div style="overflow-x:auto;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Role</th>
+          <th>IPs</th>
+          <th>Last Scheduled Run</th>
+          <th>Interval</th>
+          <th>Email Config</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td class="monospace fw-600">{{ u.email }}</td>
+          <td>
+            {% if u.role == 'admin' %}
+            <span class="badge badge-warning"><i class="bi bi-shield-lock"></i> Admin</span>
+            {% else %}
+            <span class="badge badge-secondary">User</span>
+            {% endif %}
+          </td>
+          <td>{{ u.ip_count }}</td>
+          <td style="font-size:.82rem;color:var(--text-secondary);">{{ u.last_success_at }}</td>
+          <td style="font-size:.82rem;color:var(--text-secondary);">{{ u.check_interval_minutes }} min</td>
+          <td>
+            <a href="{{ url_for('admin_email_config_edit', target_email=u.email) }}"
+               class="badge {{ 'badge-success' if u.mail_configured else 'badge-secondary' }}"
+               style="text-decoration:none;">
+              <i class="bi {{ 'bi-envelope-check' if u.mail_configured else 'bi-envelope' }}"></i>
+              {{ 'Configured' if u.mail_configured else 'Not set' }}
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-people"></i>
+    <h6>No accounts yet</h6>
+    <p style="font-size:.82rem;">Create the first user account from Manage Users.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

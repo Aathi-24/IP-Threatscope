@@ -80,7 +80,7 @@
   </div>
   <div class="ms-auto d-none d-sm-block">
     <div style="text-align:right;font-size:.75rem;color:var(--text-secondary);margin-bottom:4px;">Detection Rate</div>
-    <div style="font-size:1.5rem;font-weight:800;{% if pct > 50 %}color:var(--danger){% elif pct > 0 %}color:var(--warning){% else %}color:var(--success){% endif %}">{{ pct }}%</div>
+    <div style="font-size:1.5rem;font-weight:800;{% if pct > 50 %}color:var(--danger){% elif pct > 0 %}color:var(--warning-icon){% else %}color:var(--success-icon){% endif %}">{{ pct }}%</div>
   </div>
 </div>
 
@@ -260,7 +260,7 @@
         {% endfor %}
         {% else %}
         <div class="empty-state" style="padding:20px;">
-          <i class="bi bi-shield-check" style="font-size:2rem;color:var(--success);"></i>
+          <i class="bi bi-shield-check" style="font-size:2rem;color:var(--success-icon);"></i>
           <p style="margin-top:8px;">No vendors flagged this IP.</p>
         </div>
         {% endif %}

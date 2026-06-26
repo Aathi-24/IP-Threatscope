@@ -1,15 +1,10 @@
-{% extends "base.html" %}
-{% block title %}Change Password – IP Threatscope{% endblock %}
-{% block page_heading %}Change Password{% endblock %}
+{% extends "base_admin.html" %}
+{% block title %}My Password – IP Threatscope{% endblock %}
+{% block page_heading %}My Password{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
   <div class="col-lg-5 col-md-7">
-
-    <ol class="breadcrumb mb-4">
-      <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-      <li class="breadcrumb-item active">Change Password</li>
-    </ol>
 
     <div class="card">
       <div class="card-header">
@@ -25,16 +20,11 @@
           <div class="mb-3">
             <label class="form-label">Current Password</label>
             <div class="input-group">
-              <span class="input-group-text" style="background:#f8fafc;border:1.5px solid var(--border);border-right:none;border-radius:8px 0 0 8px;">
-                <i class="bi bi-lock" style="color:var(--text-muted);font-size:.9rem;"></i>
-              </span>
               <input type="password" name="current_password" id="cur" class="form-control"
-                     style="border-left:none;border-radius:0 8px 8px 0;"
                      placeholder="Your current password" required>
-              <button type="button" class="btn btn-ghost btn-icon"
-                      style="border:1.5px solid var(--border);border-left:none;border-radius:0 8px 8px 0;background:#f8fafc;"
-                      onclick="togglePw('cur',this)">
-                <i class="bi bi-eye" style="color:var(--text-muted);"></i>
+              <button type="button" class="btn btn-outline-secondary btn-sm"
+                      onclick="togglePw('cur',this)" style="border-radius:0 8px 8px 0;">
+                <i class="bi bi-eye"></i>
               </button>
             </div>
           </div>
@@ -44,17 +34,12 @@
           <div class="mb-3">
             <label class="form-label">New Password</label>
             <div class="input-group">
-              <span class="input-group-text" style="background:#f8fafc;border:1.5px solid var(--border);border-right:none;border-radius:8px 0 0 8px;">
-                <i class="bi bi-lock-fill" style="color:var(--text-muted);font-size:.9rem;"></i>
-              </span>
               <input type="password" name="new_password" id="np" class="form-control"
-                     style="border-left:none;border-radius:0 8px 8px 0;"
                      placeholder="At least 8 characters"
                      minlength="8" required oninput="checkStrength(this.value)">
-              <button type="button" class="btn btn-ghost btn-icon"
-                      style="border:1.5px solid var(--border);border-left:none;border-radius:0 8px 8px 0;background:#f8fafc;"
-                      onclick="togglePw('np',this)">
-                <i class="bi bi-eye" style="color:var(--text-muted);"></i>
+              <button type="button" class="btn btn-outline-secondary btn-sm"
+                      onclick="togglePw('np',this)" style="border-radius:0 8px 8px 0;">
+                <i class="bi bi-eye"></i>
               </button>
             </div>
             <div class="pw-strength" id="pwStrength"></div>
@@ -64,34 +49,22 @@
           <div class="mb-4">
             <label class="form-label">Confirm New Password</label>
             <div class="input-group">
-              <span class="input-group-text" style="background:#f8fafc;border:1.5px solid var(--border);border-right:none;border-radius:8px 0 0 8px;">
-                <i class="bi bi-lock-fill" style="color:var(--text-muted);font-size:.9rem;"></i>
-              </span>
               <input type="password" name="confirm_password" id="cp" class="form-control"
-                     style="border-left:none;border-radius:0 8px 8px 0;"
-                     placeholder="Repeat new password"
-                     minlength="8" required>
-              <button type="button" class="btn btn-ghost btn-icon"
-                      style="border:1.5px solid var(--border);border-left:none;border-radius:0 8px 8px 0;background:#f8fafc;"
-                      onclick="togglePw('cp',this)">
-                <i class="bi bi-eye" style="color:var(--text-muted);"></i>
+                     placeholder="Repeat new password" minlength="8" required>
+              <button type="button" class="btn btn-outline-secondary btn-sm"
+                      onclick="togglePw('cp',this)" style="border-radius:0 8px 8px 0;">
+                <i class="bi bi-eye"></i>
               </button>
             </div>
           </div>
 
-          <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-warning">
-              <i class="bi bi-check-lg"></i> Update Password
-            </button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">
-              Cancel
-            </a>
-          </div>
+          <button type="submit" class="btn btn-warning w-100">
+            <i class="bi bi-check-lg"></i> Update Password
+          </button>
         </form>
       </div>
     </div>
 
-    <!-- Password tips -->
     <div class="card mt-3" style="background:#f8fafc;border-color:var(--border);">
       <div class="card-body" style="padding:16px;">
         <div style="font-size:.78rem;font-weight:700;color:var(--text-secondary);margin-bottom:8px;">

@@ -1,0 +1,72 @@
+{% extends "base_admin.html" %}
+{% block title %}Email Configuration Settings – IP Threatscope{% endblock %}
+{% block page_heading %}Email Configuration Settings{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="color:var(--text-primary);">
+    <i class="bi bi-envelope-gear" style="color:var(--accent);"></i>
+    Select a User to Configure
+    <span class="badge badge-primary ms-1">{{ users | length }}</span>
+  </div>
+
+  <div class="alert alert-info" style="margin:16px 20px;font-size:.85rem;">
+    <i class="bi bi-info-circle me-1"></i>
+    Each user can have a different sender address, SMTP password, recipient
+    address, and SMTP server. Click a user below to view or change their
+    own email configuration — scheduled reports for that user will be
+    sent using exactly the settings saved here.
+  </div>
+
+  {% if users %}
+  <div style="overflow-x:auto;">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Recipient Address</th>
+          <th>Status</th>
+          <th style="width:140px;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td class="monospace fw-600">{{ u.email }}</td>
+          <td>
+            {% if u.role == 'admin' %}
+            <span class="badge badge-warning"><i class="bi bi-shield-lock"></i> Admin</span>
+            {% else %}
+            <span class="badge badge-secondary">User</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.82rem;color:var(--text-secondary);">
+            {{ u.mail_recipient or '—' }}
+          </td>
+          <td>
+            {% if u.mail_configured %}
+            <span class="badge badge-success"><i class="bi bi-check-circle"></i> Configured</span>
+            {% else %}
+            <span class="badge badge-secondary"><i class="bi bi-exclamation-circle"></i> Not set</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('admin_email_config_edit', target_email=u.email) }}"
+               class="btn btn-sm btn-primary">
+              <i class="bi bi-pencil-square"></i> Configure
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-people"></i>
+    <h6>No accounts yet</h6>
+    <p style="font-size:.82rem;">Create a user first from Manage Users, then configure their email here.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
